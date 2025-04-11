@@ -9,14 +9,24 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
+    
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('identification_number')->nullable(); // DNI
+            $table->date('birth_date')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('address')->nullable();
+            $table->foreignUuid('role_id')
+                ->nullable()
+                ->constrained('roles')
+                ->nullOnDelete();
+            $table->timestamp('registered_at')->useCurrent();
             $table->rememberToken();
             $table->timestamps();
         });
