@@ -2,7 +2,7 @@ composer install
 
 php artisan serve -vvv &
 
-sh setup-githook.sh
+# sh setup-githook.sh
 
 if [ ! -f .git/hooks/pre-commit ]
 then
@@ -10,4 +10,4 @@ then
 fi
 
 
-tail -f /dev/null
+# tail -f /dev/null

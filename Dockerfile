@@ -2,7 +2,7 @@ FROM php:8.3-cli
 
 RUN apt-get -y update
 RUN apt-get -y upgrade
-RUN apt-get -y install git zip curl
+RUN apt-get -y install git zip unzip libzip-dev curl
 
 RUN curl -fsSL https://deb.nodesource.com/setup_23.x -o nodesource_setup.sh
 RUN bash nodesource_setup.sh
@@ -20,4 +20,8 @@ RUN adduser app
 
 USER app
 
-ENTRYPOINT [ "sh", "entrypoint.sh" ]
+COPY --chown=app:app . /app
+
+RUN composer install
+
+#ENTRYPOINT [ "sh", "entrypoint.sh" ]
