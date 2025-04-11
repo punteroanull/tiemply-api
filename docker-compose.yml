@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiemply-api
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+    networks:
+      - tiemply-network
+
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: tiemply-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./:/var/www
+  #     - ./docker/nginx/conf.d:/etc/nginx/conf.d
+  #   networks:
+  #     - tiemply-network
+  #   depends_on:
+  #     - app
+
+  db:
+    image: mariadb:10.7
+    container_name: tiemply-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mariadb
+    ports:
+      - "3306:3306"
+    volumes:
+      - tiemply-data:/app/mysql
+    networks:
+      - tiemply-network
+
+networks:
+  tiemply-network:
+    driver: bridge
+
+volumes:
+  tiemply-data:
+    driver: local
