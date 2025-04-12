@@ -19,7 +19,7 @@ class CompanyController extends Controller
         // Only administrators can see all companies
         if (Gate::denies('viewAny', Company::class)) {
             // Regular users can only see companies they belong to
-            $companies = auth()->user()->companies;
+            $companies = auth()->user()->companies();
         } else {
             $companies = Company::all();
         }

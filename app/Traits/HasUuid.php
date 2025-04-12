@@ -9,23 +9,21 @@ trait HasUuid
     /**
      * Boot the trait.
      */
-    protected static function bootHasUuid()
+    /**
+     * Boot functions from Laravel.
+     */
+    // protected static function boot() <- This line is INCORRECT
+    protected static function bootHasUUID()
     {
         static::creating(function ($model) {
+            $model->primaryKey = 'id';
+            $model->keyType = 'string'; // In Laravel 6.0+ make sure to also set $keyType
+            $model->incrementing = false;
+
             if (empty($model->{$model->getKeyName()})) {
                 $model->{$model->getKeyName()} = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * Get the auto-incrementing key type.
-     *
-     * @return string
-     */
-    public function getKeyType()
-    {
-        return 'string';
     }
 
     /**
@@ -36,5 +34,15 @@ trait HasUuid
     public function getIncrementing()
     {
         return false;
+    }
+
+    /**
+     * Get the auto-incrementing key type.
+     *
+     * @return string
+     */
+    public function getKeyType()
+    {
+        return 'string';
     }
 }
