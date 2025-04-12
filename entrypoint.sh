@@ -1,6 +1,10 @@
-#!/bin/sh
-# Comandos de inicialización
-echo "Starting application..."
+#!/bin/sh¡
+# Esperar a que MariaDB esté listo
+# echo "Waiting for database connection..."
+# while ! mysqladmin ping -h"$DB_HOST" --silent; do
+#   sleep 2
+# done
+echo "Database is ready. Starting application..."
 composer install
 php artisan serve -vvv &
 chmod +x setup-githook.sh

@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+
+  db:
+    image: mariadb:10.7
+    container_name: tiemply-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD} # Asegúrate de que esta variable esté configurada
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mariadb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/data/db
+    networks:
+      - tiemply-network
+      
   app:
     build:
       context: .
@@ -34,23 +53,6 @@ services:
   #   depends_on:
   #     - app
 
-  db:
-    image: mariadb:10.7
-    container_name: tiemply-db
-    restart: unless-stopped
-    environment:
-      MARIADB_DATABASE: ${DB_DATABASE}
-      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD} # Asegúrate de que esta variable esté configurada
-      MARIADB_PASSWORD: ${DB_PASSWORD}
-      MARIADB_USER: ${DB_USERNAME}
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mariadb
-    ports:
-      - "3307:3306"
-    volumes:
-      - mariadb-data:/data/db
-    networks:
-      - tiemply-network
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: tiemply_phpmyadmin

@@ -2,7 +2,7 @@
 FROM php:8.3-cli
 
 RUN apt-get -y update && apt-get -y upgrade && \
-    apt-get -y install git zip unzip libzip-dev curl && \
+    apt-get -y install git zip unzip libzip-dev curl default-mysql-client && \
     curl -fsSL https://deb.nodesource.com/setup_23.x -o nodesource_setup.sh && \
     bash nodesource_setup.sh && \
     apt-get install -y nodejs && \
