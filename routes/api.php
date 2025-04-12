@@ -1,13 +1,13 @@
 <?php
 
-use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\API\CompanyController;
-use App\Http\Controllers\API\EmployeeController;
-use App\Http\Controllers\API\RoleController;
-use App\Http\Controllers\API\WorkLogController;
-use App\Http\Controllers\API\AbsenceController;
-use App\Http\Controllers\API\RequestController;
-use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\WorkLogController;
+use App\Http\Controllers\AbsenceController;
+use App\Http\Controllers\RequestController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,8 +20,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public routes
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register'])->name('register');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

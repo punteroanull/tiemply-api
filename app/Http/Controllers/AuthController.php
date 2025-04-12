@@ -58,7 +58,7 @@ class AuthController extends Controller
             'password' => 'required',
             'device_name' => 'nullable|string',
         ]);
-
+        //dd($request->email);
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {

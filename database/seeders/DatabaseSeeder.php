@@ -13,11 +13,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Run the seeders in correct order to handle dependencies
+        $this->call([
+            RoleSeeder::class,           // First, create roles
+            UserSeeder::class,           // Then, create users with roles
+            CompanySeeder::class,        // Create companies
+            EmployeeSeeder::class,       // Link users to companies as employees
+            AbsenceTypeSeeder::class,    // Create absence types
+            WorkLogSeeder::class,        // Generate work logs for employees
+            AbsenceRequestSeeder::class, // Create absence requests 
+            AbsenceSeeder::class,        // Create absences from approved requests
         ]);
     }
 }

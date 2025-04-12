@@ -8,6 +8,31 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\HasUuid;
 
+
+/**
+ * Summary of User
+ *
+ * @property integer $id
+ * @property string $uuid
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property string|null $identification_number
+ * @property \Illuminate\Support\Carbon|null $birth_date
+ * @property string|null $phone
+ * @property string|null $address
+ * @property integer|null $role_id
+ * @property \Illuminate\Support\Carbon|null $registered_at
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property string|null $remember_token
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ *
+ * @property \App\Models\Role|null $role
+ * @property \Illuminate\Database\Eloquent\Collection|\App\Models\Employee[] $employeeRecords
+ * @property \Illuminate\Database\Eloquent\Collection|\App\Models\Company[] $companies
+ */
+
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasUuid;
@@ -15,7 +40,7 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
