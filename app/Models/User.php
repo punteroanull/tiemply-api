@@ -97,10 +97,14 @@ class User extends Authenticatable
      */
     public function companies()
     {
-        return $this->belongsToMany(Company::class, 'employees', 'user_id', 'company_id')
-                    ->using(Employee::class)
-                    ->withPivot(['id', 'contract_start_time', 'contract_end_time', 'remaining_vacation_days', 'active'])
-                    ->withTimestamps();
+        return $this->hasManyThrough(
+            Company::class,
+            Employee::class,
+            'user_id',    // Foreign key on Employee
+            'id',         // Foreign key on Company
+            'id',         // Local key on User
+            'company_id'  // Local key on Employee
+        );
     }
     
     /**
@@ -116,6 +120,6 @@ class User extends Authenticatable
      */
     public function belongsToCompany(string $companyId): bool
     {
-        return $this->employeeRecords()->where('company_id', $companyId)->where('active', true)->exists();
+        return $this->employees()->where('company_id', $companyId)->exists();
     }
 }
