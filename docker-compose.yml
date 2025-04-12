@@ -1,7 +1,10 @@
 version: '3.8'
 
-services:
+networks:
+  tiemply-network:
+    driver: bridge
 
+services:
   db:
     image: mariadb:10.7
     container_name: tiemply-db
@@ -28,9 +31,9 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
-    working_dir: /app
+    working_dir: /App
     volumes:
-      - .:/app
+      - .:/App
       - composer_cache:/root/.composer
     env_file:
       - .env
@@ -44,9 +47,9 @@ services:
   #   container_name: tiemply-nginx
   #   restart: unless-stopped
   #   ports:
-  #     - "80:80"
+  #     - "7000:80"
   #   volumes:
-  #     - ./:/var/www
+  #     - .:/var/www/app:delegated
   #     - ./docker/nginx/conf.d:/etc/nginx/conf.d
   #   networks:
   #     - tiemply-network
@@ -58,16 +61,12 @@ services:
     container_name: tiemply_phpmyadmin
     restart: always
     ports:
-      - "8080:80"
+      - "8088:80"
     environment:
       PMA_HOST: db
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}      
     networks:
       - tiemply-network
-
-networks:
-  tiemply-network:
-    driver: bridge
 
 volumes:
   composer_cache:
