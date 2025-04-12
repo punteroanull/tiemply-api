@@ -1,17 +1,13 @@
 #!/bin/bash
-
 if ! ./vendor/bin/phpstan analyse --memory-limit 512M; then
     exit 1
 fi
-
 if ! ./vendor/bin/phpmd app ansi phpmd.xml; then
     exit 2
 fi
-
 if ! ./vendor/bin/phpcs app phpcs.xml; then
     exit 3
 fi
-
 if ! ./vendor/bin/phpunit --stop-on-failure --stop-on-error; then
     exit 4
 fi

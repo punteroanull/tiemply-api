@@ -11,13 +11,14 @@ services:
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - ./:/app
+      - .:/app
+      - composer_cache:/root/.composer
+    env_file:
+      - .env
     depends_on:
       - db
     networks:
       - tiemply-network
-    command: >
-      sh -c "php artisan migrate:fresh --seed && php artisan serve --host=0.0.0.0 --port=8000"
 
   # nginx:
   #   image: nginx:alpine
@@ -39,7 +40,7 @@ services:
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: ${DB_DATABASE}
-      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD} # Asegúrate de que esta variable esté configurada
       MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_USER: ${DB_USERNAME}
       SERVICE_TAGS: dev
@@ -47,7 +48,7 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - tiemply-data:/app/mysql
+      - mariadb-data:/data/db
     networks:
       - tiemply-network
   phpmyadmin:
@@ -58,12 +59,16 @@ services:
       - "8080:80"
     environment:
       PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}      
+    networks:
+      - tiemply-network
 
 networks:
   tiemply-network:
     driver: bridge
 
 volumes:
-  tiemply-data:
+  composer_cache:
+    driver: local
+  mariadb-data:
     driver: local
