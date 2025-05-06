@@ -25,44 +25,25 @@ Route::post('/register', [AuthController::class, 'register'])->name('register');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
+    // Auth routes
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/me', [AuthController::class, 'me'])->name('user.profile');
 
     // Users routes
-    //Route::apiResource('users', UserController::class);
-    Route::get('/users', [UserController::class, 'index']); // admin only
-    Route::post('/users', [UserController::class, 'store']); // admin only
-    Route::get('/users/{id}', [UserController::class, 'show']);
-    Route::put('/users/{id}', [UserController::class, 'update']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']); // admin only
+    Route::apiResource('users', UserController::class);
 
     // Companies routes
-    //Route::apiResource('companies', CompanyController::class);
-    Route::get('/companies', [CompanyController::class, 'index']);
-    Route::post('/companies', [CompanyController::class, 'store']); // admin only
-    Route::get('/companies/{id}', [CompanyController::class, 'show']);
-    Route::put('/companies/{id}', [CompanyController::class, 'update']);
-    Route::delete('/companies/{id}', [CompanyController::class, 'destroy']); // admin only
-    Route::get('/companies/{id}/employees', [CompanyController::class, 'employees']);
+    Route::apiResource('companies', CompanyController::class);
+    Route::get('/companies/{company}/employees', [CompanyController::class, 'employees'])->name('companies.employees');
     
     // Employees routes
-    //Route::apiResource('employees', EmployeeController::class);
-    Route::get('/employees', [EmployeeController::class, 'index']);
-    Route::post('/employees', [EmployeeController::class, 'store']);
-    Route::get('/employees/{id}', [EmployeeController::class, 'show']);
-    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
-    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
-    Route::get('/employees/{id}/worklogs', [EmployeeController::class, 'worklogs']);
-    Route::get('/employees/{id}/absences', [EmployeeController::class, 'absences']);
-    Route::get('/employees/{id}/requests', [EmployeeController::class, 'requests'])
+    Route::apiResource('employees', EmployeeController::class);
+    Route::get('/employees/{employee}/work-logs', [EmployeeController::class, 'workLogs'])->name('employees.work-logs');
+    Route::get('/employees/{employee}/absences', [EmployeeController::class, 'absences'])->name('employees.absences');
+    Route::get('/employees/{employee}/absence-requests', [EmployeeController::class, 'absenceRequests'])->name('employees.absence-requests');
 
     // Roles routes
-    //Route::apiResource('roles', RoleController::class);
-    Route::get('/roles', [RoleController::class, 'index']); // admin only
-    Route::post('/roles', [RoleController::class, 'store']); // admin only
-    Route::get('/roles/{id}', [RoleController::class, 'show']);
-    Route::put('/roles/{id}', [RoleController::class, 'update']);
-    Route::delete('/roles/{id}', [RoleController::class, 'destroy']); // admin only
+    Route::apiResource('roles', RoleController::class);
 
     // WorkLogs routes
     Route::apiResource('worklogs', WorkLogController::class);
