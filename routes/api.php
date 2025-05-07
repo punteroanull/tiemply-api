@@ -61,10 +61,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/absences/employee/{employee}/period', [AbsenceController::class, 'byEmployeeAndPeriod']);
     
     // Requests routes
-    Route::apiResource('requests', RequestController::class);
-    Route::get('/requests/employee/{employee}', [RequestController::class, 'byEmployee']);
-    Route::get('/requests/company/{company}', [RequestController::class, 'byCompany']);
-    Route::patch('/requests/{request}/approve', [RequestController::class, 'approve']);
-    Route::patch('/requests/{request}/reject', [RequestController::class, 'reject']);
-    Route::get('/requests/pending/company/{company}', [RequestController::class, 'pendingByCompany']);
+    Route::apiResource('requests', AbsenceRequestController::class);
+    Route::get('/requests/employee/{employee}', [AbsenceRequestController::class, 'byEmployee']);
+    Route::get('/requests/company/{company}', [AbsenceRequestController::class, 'byCompany']);
+    Route::patch('/requests/{request}/approve', [AbsenceRequestController::class, 'approve']);
+    Route::patch('/requests/{request}/reject', [AbsenceRequestController::class, 'reject']);
+    Route::get('/requests/pending/company/{company}', [AbsenceRequestController::class, 'pendingByCompany']);
 });

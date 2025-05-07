@@ -220,4 +220,118 @@ class WorkLogController extends Controller
             'work_days' => count($dailyLogs),
         ]);
     }
+
+ /**
+ * Employee checkin.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function checkIn(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|uuid|exists:employees,id',
+            'notes' => 'nullable|string|max:500',
+            'location' => 'nullable|string', // Optional location data
+        ]);
+
+        $employee = Employee::findOrFail($validated['employee_id']);
+        
+        // Verify user can check in for this employee
+        if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
+            return response()->json(['message' => 'Unauthorized to check in for this employee'], 403);
+        }
+
+        // Check if there's already a check-in for today
+        $today = Carbon::now()->toDateString();
+        $existingCheckIn = WorkLog::where('employee_id', $employee->id)
+            ->where('date', $today)
+            ->where('type', 'check_in')
+            ->exists();
+            
+        if ($existingCheckIn) {
+            return response()->json(['message' => 'Employee has already checked in today'], 422);
+        }
+
+        // Create check-in record
+        $workLog = WorkLog::create([
+            'employee_id' => $employee->id,
+            'date' => $today,
+            'time' => Carbon::now()->toTimeString(),
+            'type' => 'check_in',
+            'ip_address' => $request->ip(),
+            'location' => $validated['location'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Check-in successful',
+            'work_log' => $workLog
+        ], 201);
+    }
+
+/**
+ * employee check-out.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+    public function checkOut(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|uuid|exists:employees,id',
+            'notes' => 'nullable|string|max:500',
+            'location' => 'nullable|string', // Optional location data
+        ]);
+
+        $employee = Employee::findOrFail($validated['employee_id']);
+        
+        // Verify user can check out for this employee
+        if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
+            return response()->json(['message' => 'Unauthorized to check out for this employee'], 403);
+        }
+
+        // Check if there's a check-in for today
+        $today = Carbon::now()->toDateString();
+        $checkIn = WorkLog::where('employee_id', $employee->id)
+            ->where('date', $today)
+            ->where('type', 'check_in')
+            ->first();
+            
+        if (!$checkIn) {
+            return response()->json(['message' => 'Employee must check in before checking out'], 422);
+        }
+        
+        // Check if there's already a check-out for today
+        $existingCheckOut = WorkLog::where('employee_id', $employee->id)
+            ->where('date', $today)
+            ->where('type', 'check_out')
+            ->exists();
+            
+        if ($existingCheckOut) {
+            return response()->json(['message' => 'Employee has already checked out today'], 422);
+        }
+
+        // Create check-out record
+        $workLog = WorkLog::create([
+            'employee_id' => $employee->id,
+            'date' => $today,
+            'time' => Carbon::now()->toTimeString(),
+            'type' => 'check_out',
+            'ip_address' => $request->ip(),
+            'location' => $validated['location'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+        
+        // Calculate hours worked
+        $checkInTime = Carbon::parse($checkIn->time);
+        $checkOutTime = Carbon::parse($workLog->time);
+        $hoursWorked = $checkOutTime->diffInMinutes($checkInTime) / 60;
+
+        return response()->json([
+            'message' => 'Check-out successful',
+            'work_log' => $workLog,
+            'hours_worked' => $hoursWorked
+        ], 201);
+    }
 }
