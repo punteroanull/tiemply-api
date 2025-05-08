@@ -7,6 +7,7 @@ use App\Models\AbsenceRequest;
 use App\Models\AbsenceType;
 use App\Models\Absence;
 use App\Models\Employee;
+use App\Models\Company;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;

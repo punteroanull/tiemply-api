@@ -16,6 +16,8 @@ public_html/storage
 public_html/hot
 
 /storage/
+/storage/*.*
+/storage
 storage/*.*
 storage/*.key
 .env

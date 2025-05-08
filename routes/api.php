@@ -59,13 +59,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('absences', AbsenceController::class);
     Route::get('/absences/employee/{employee}', [AbsenceController::class, 'byEmployee']);
     Route::get('/absences/employee/{employee}/type/{type}', action: [AbsenceController::class, 'byEmployeeAndType']);
-    Route::get('/absences/employee/{employee}/period', [AbsenceController::class, 'byEmployeeAndPeriod']);
+    Route::get('/absences/employee/{employee}/period/{start}/{end}', [AbsenceController::class, 'byEmployeeAndPeriod']);
     
+    // Absence types routes
+    Route::apiResource('absence-types', AbsenceTypeController::class);
+
     // Requests routes
     Route::apiResource('requests', AbsenceRequestController::class);
     Route::get('/requests/employee/{employee}', [AbsenceRequestController::class, 'byEmployee']);
     Route::get('/requests/company/{company}', [AbsenceRequestController::class, 'byCompany']);
-    Route::patch('/requests/{request}/approve', [AbsenceRequestController::class, 'approve']);
-    Route::patch('/requests/{request}/reject', [AbsenceRequestController::class, 'reject']);
+    Route::post('/requests/approve', [AbsenceRequestController::class, 'approve']);
+    Route::post('/requests/reject', [AbsenceRequestController::class, 'reject']);
     Route::get('/requests/pending/company/{company}', [AbsenceRequestController::class, 'pendingByCompany']);
+    Route::get('/requests/pending/employee/{employee}', [AbsenceRequestController::class, 'pendingByEmployee']);
 });

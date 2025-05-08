@@ -158,6 +158,11 @@ class AbsenceRequestPolicy
         if (!$absenceRequest->isPending()) {
             return false;
         }
+
+        // Los administradores pueden revisar cualquier solicitud
+        if ($user->isAdmin()) {
+            return true;
+        }
         
         // Verificar que la solicitud tiene un empleado asociado
         if ($absenceRequest->employee) {
@@ -165,11 +170,6 @@ class AbsenceRequestPolicy
             if ($user->id === $absenceRequest->employee->user_id) {
                 return false;
             }
-        }
-        
-        // Los administradores pueden revisar cualquier solicitud
-        if ($user->isAdmin()) {
-            return true;
         }
         
         // Los gerentes pueden revisar las solicitudes de los empleados de sus empresas

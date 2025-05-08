@@ -7,6 +7,7 @@ use App\Models\Absence;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 
 class AbsenceController extends Controller
 {
@@ -190,7 +191,7 @@ class AbsenceController extends Controller
             $query = Absence::query();
         }
         
-        $startDate = \Carbon\Carbon::createFromDate($request->year, $request->month, 1)->startOfMonth();
+        $startDate = Carbon::createFromDate($request->year, $request->month, 1)->startOfMonth();
         $endDate = clone $startDate;
         $endDate->endOfMonth();
         
@@ -234,7 +235,25 @@ class AbsenceController extends Controller
         ]);
     }
 
-     /**
+    /**
+     * Get absences by employee.
+     *
+     * @param  \App\Models\Employee  $employee
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function byEmployee(Employee $employee)
+    {
+        Gate::authorize('view', $employee);
+        
+        $absences = $employee->absences()
+            ->with(['absenceType', 'request'])
+            ->orderBy('date', 'desc')
+            ->get();
+            
+        return response()->json($absences);
+    }
+
+    /**
      * Get absences by employee and type.
      *
      * @param  \App\Models\Employee  $employee
@@ -263,17 +282,33 @@ class AbsenceController extends Controller
      * @param  \App\Models\Employee  $employee
      * @return \Illuminate\Http\JsonResponse
      */
-    public function byEmployeeAndPeriod(Request $request, Employee $employee)
+    public function byEmployeeAndPeriod(Employee $employee, $start_date, $end_date)
     {
-        Gate::authorize('view', $employee);
-        
-        $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
+        $validator = Validator::make([
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ], [
+            'start_date' => ['required', 'date_format:Y-m-d'],
+            'end_date' => ['required', 'date_format:Y-m-d'],
         ]);
         
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+
+        try {
+            $employee = Employee::findOrFail($employee->id);
+        } catch (\Exception $e) {
+            Log::error('Error finding employee: ' . $e->getMessage());
+            return response()->json(['message' => 'Employee not found'], 404);
+        }
+
+        Gate::authorize('view', $employee);
+        
+        
         $absences = $employee->absences()
-            ->whereBetween('date', [$request->start_date, $request->end_date])
+            ->whereBetween('date', [$start_date, $end_date])
             ->with(['absenceType', 'request'])
             ->orderBy('date')
             ->get();
