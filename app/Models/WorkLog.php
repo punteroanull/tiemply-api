@@ -20,6 +20,8 @@ class WorkLog extends Model
         'date',
         'time',
         'type',
+        'category',
+        'paired_log_id',
         'ip_address',
         'location',
         'notes',
@@ -42,6 +44,15 @@ class WorkLog extends Model
     {
         return $this->belongsTo(Employee::class);
     }
+
+    /**
+     * Get the paired log entry.
+     */
+    public function pairedLog()
+    {
+        return $this->hasOne(WorkLog::class, 'paired_log_id');
+    }
+    
     
     /**
      * Scope a query to only include check-ins.
@@ -65,5 +76,35 @@ class WorkLog extends Model
     public function scopeDateRange($query, $startDate, $endDate)
     {
         return $query->whereBetween('date', [$startDate, $endDate]);
+    }
+     /**
+     * Check if this log is a start event (check-in type).
+     */
+    public function isStartEvent()
+    {
+        return $this->type === 'check_in';
+    }
+    
+    /**
+     * Check if this log is an end event (check-out type).
+     */
+    public function isEndEvent()
+    {
+        return $this->type === 'check_out';
+    }
+    
+    /**
+     * Calculate duration from this log to its paired log.
+     */
+    public function getDurationInMinutes()
+    {
+        if (!$this->pairedLog) {
+            return null;
+        }
+        
+        $start = \Carbon\Carbon::parse($this->time);
+        $end = \Carbon\Carbon::parse($this->pairedLog->time);
+        
+        return $end->diffInMinutes($start);
     }
 }

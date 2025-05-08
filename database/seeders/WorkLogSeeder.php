@@ -55,7 +55,7 @@ class WorkLogSeeder extends Seeder
                     )
                     ->addMinutes($checkInDeviation);
                 
-                WorkLog::create([
+                $checkInId = WorkLog::create([
                     'employee_id' => $employee->id,
                     'date' => $checkInDate->toDateString(),
                     'time' => $checkInTime->format('H:i:s'),
@@ -74,11 +74,13 @@ class WorkLogSeeder extends Seeder
                     )
                     ->addMinutes($checkOutDeviation);
                 
-                WorkLog::create([
+                    $checkOutId = WorkLog::create([
                     'employee_id' => $employee->id,
                     'date' => $checkOutDate->toDateString(),
                     'time' => $checkOutTime->format('H:i:s'),
                     'type' => 'check_out',
+                    'category' => 'shift_end', // Default category for check-out
+                    'paired_log_id' => $checkInId->id, // This will be set later if needed
                     'ip_address' => fake()->ipv4(),
                     'notes' => rand(1, 10) === 1 ? fake()->sentence() : null, // 10% chance of having notes
                 ]);

@@ -6,7 +6,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\AbsenceController;
-use App\Http\Controllers\RequestController;
+use App\Http\Controllers\AbsenceRequestController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 

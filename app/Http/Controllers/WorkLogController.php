@@ -227,111 +227,339 @@ class WorkLogController extends Controller
  * @param  \Illuminate\Http\Request  $request
  * @return \Illuminate\Http\JsonResponse
  */
-    public function checkIn(Request $request)
-    {
-        $validated = $request->validate([
-            'employee_id' => 'required|uuid|exists:employees,id',
-            'notes' => 'nullable|string|max:500',
-            'location' => 'nullable|string', // Optional location data
-        ]);
+public function checkIn(Request $request)
+{
+    $validated = $request->validate([
+        'employee_id' => 'required|uuid|exists:employees,id',
+        'category' => 'nullable|in:shift_start,break_end,offsite_end',
+        'notes' => 'nullable|string|max:500',
+    ]);
 
-        $employee = Employee::findOrFail($validated['employee_id']);
+    $employee = Employee::findOrFail($validated['employee_id']);
         
-        // Verify user can check in for this employee
-        if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
-            return response()->json(['message' => 'Unauthorized to check in for this employee'], 403);
-        }
+    // Verify user can check in for this employee
+    if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
+        return response()->json(['message' => 'Unauthorized to check in for this employee'], 403);
+    }
+    $category = $validated['category'] ?? 'shift_start'; // Default category for check-in
+    $pairedCheckId = null;
 
-        // Check if there's already a check-in for today
-        $today = Carbon::now()->toDateString();
-        $existingCheckIn = WorkLog::where('employee_id', $employee->id)
+    switch ($category) {
+        case 'shift_start':
+            // Check if there's already a check-in for today without a check-out
+            $today = Carbon::now()->toDateString();
+            $existingShiftStart = WorkLog::where('employee_id', $employee->id)
             ->where('date', $today)
             ->where('type', 'check_in')
+            ->where('category', 'shift_start')
+            ->whereDoesntHave('pairedLog', function ($query) {
+                $query->where('type', 'check_out')
+                      ->where('category', 'shift_end');
+            })
             ->exists();
-            
-        if ($existingCheckIn) {
-            return response()->json(['message' => 'Employee has already checked in today'], 422);
-        }
+                
+            if ($existingShiftStart) {
+                return response()->json([
+                    'message' => 'Employee has already started his shift',
+                ], 422);
+            }
 
-        // Create check-in record
-        $workLog = WorkLog::create([
-            'employee_id' => $employee->id,
-            'date' => $today,
-            'time' => Carbon::now()->toTimeString(),
-            'type' => 'check_in',
-            'ip_address' => $request->ip(),
-            'location' => $validated['location'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-        ]);
+            break;
+        case 'break_end':
+            // Check if there's already a check-out (-1 day or today) for this category without a paired log
+            $today = Carbon::now()->subDays(1)->toDateString();
 
-        return response()->json([
-            'message' => 'Check-in successful',
-            'work_log' => $workLog
-        ], 201);
+            $existingBreak = WorkLog::where('employee_id', $employee->id)
+                ->where('date', '>=', $today)
+                ->where('type', 'check_out')
+                ->where('category', 'break_start')
+                ->whereDoesntHave('pairedLog', function ($query) {
+                    $query->where('type', 'check_in')
+                          ->where('category', 'break_end');
+                })
+                ->first();
+
+            if (!$existingBreak) {
+                return response()->json([
+                    'message' => 'No matching check-out found for break',
+                ], 422);
+            }
+            $pairedCheckId = $existingBreak->id;
+            break;
+        case 'offsite_end':
+
+            // Check if there's already a check-out (-1 day or today) for this category without a paired log
+            $today = Carbon::now()->subDays(1)->toDateString();
+
+            $existingOffsite = WorkLog::where('employee_id', $employee->id)
+                ->where('date', '>=', $today)
+                ->where('type', 'check_out')
+                ->where('category', 'offsite_start')
+                ->whereDoesntHave('pairedLog', function ($query) {
+                    $query->where('type', 'check_in')
+                          ->where('category', 'offsite_end');
+                })
+                ->first();
+
+            if (!$existingOffsite) {
+                return response()->json([
+                    'message' => 'No matching check-out found for an offsite',
+                ], 422);
+            }
+            $pairedCheckId = $existingOffsite->id;
+            break;
+        default:
+            $validated['category'] = 'shift_start'; // Default category for check-in
     }
+    
+    // Create the check-in record
+    $workLog = WorkLog::create([
+        'employee_id' => $validated['employee_id'],
+        'date' => now()->toDateString(),
+        'time' => now()->toTimeString(),
+        'type' => 'check_in',
+        'category' => $validated['category'] ?? 'shift_start',
+        'ip_address' => $request->ip(),
+        'notes' => $validated['notes'] ?? null,
+        'paired_log_id' => $pairedCheckId,
+    ]);
+
+    return response()->json([
+        'message' => 'Check-in successful',
+        'work_log' => $workLog
+    ], 201);
+}
 
 /**
- * employee check-out.
- *
- * @param  \Illuminate\Http\Request  $request
- * @return \Illuminate\Http\JsonResponse
+ * Record a check-out event
+ * Note: I substract 1 day from the current date to handle night shifts that may check out the next day.
  */
-    public function checkOut(Request $request)
-    {
-        $validated = $request->validate([
-            'employee_id' => 'required|uuid|exists:employees,id',
-            'notes' => 'nullable|string|max:500',
-            'location' => 'nullable|string', // Optional location data
-        ]);
+public function checkOut(Request $request)
+{
+    $validated = $request->validate([
+        'employee_id' => 'required|uuid|exists:employees,id',
+        'category' => 'nullable|in:shift_end,break_start,offsite_start',
+        'notes' => 'nullable|string|max:500',
+    ]);
+    $category = $validated['category'] ?? 'shift_end'; // Default category for check-out
+    $employee = Employee::findOrFail($validated['employee_id']);
+    // Check if there's a check-in for today (or yesterday, in case of night shifts) without a check-out for this category
+    $today = Carbon::now()->subDays(1)->toDateString();
 
-        $employee = Employee::findOrFail($validated['employee_id']);
-        
-        // Verify user can check out for this employee
-        if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
-            return response()->json(['message' => 'Unauthorized to check out for this employee'], 403);
-        }
+    $existingShift = WorkLog::where('employee_id', $employee->id)
+    ->where('date', '>=', $today)
+    ->where('type', 'check_in')
+    ->where('category', 'shift_start')
+    ->whereDoesntHave('pairedLog', function ($query) {
+        $query->where('type', 'check_out')
+              ->where('category', 'shift_end');
+    })
+    ->first();
 
-        // Check if there's a check-in for today
-        $today = Carbon::now()->toDateString();
-        $checkIn = WorkLog::where('employee_id', $employee->id)
-            ->where('date', $today)
-            ->where('type', 'check_in')
-            ->first();
-            
-        if (!$checkIn) {
-            return response()->json(['message' => 'Employee must check in before checking out'], 422);
-        }
-        
-        // Check if there's already a check-out for today
-        $existingCheckOut = WorkLog::where('employee_id', $employee->id)
-            ->where('date', $today)
-            ->where('type', 'check_out')
-            ->exists();
-            
-        if ($existingCheckOut) {
-            return response()->json(['message' => 'Employee has already checked out today'], 422);
-        }
-
-        // Create check-out record
-        $workLog = WorkLog::create([
-            'employee_id' => $employee->id,
-            'date' => $today,
-            'time' => Carbon::now()->toTimeString(),
-            'type' => 'check_out',
-            'ip_address' => $request->ip(),
-            'location' => $validated['location'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-        ]);
-        
-        // Calculate hours worked
-        $checkInTime = Carbon::parse($checkIn->time);
-        $checkOutTime = Carbon::parse($workLog->time);
-        $hoursWorked = $checkOutTime->diffInMinutes($checkInTime) / 60;
-
+    $shiftId = null;
+    //If there's no check-in with category shift_start without pairedlog, there's no need to check for break_start or offsite_start
+    if (!$existingShift) {
         return response()->json([
-            'message' => 'Check-out successful',
-            'work_log' => $workLog,
-            'hours_worked' => $hoursWorked
-        ], 201);
+            'message' => 'No matching check-in found. Please check in first.',
+        ], 422);
     }
+    switch ($category) {
+        case 'shift_end':
+            $existingBreakOrOffsite = $existingBreak = WorkLog::where('employee_id', $employee->id)
+            ->where('date', '>=', $today)
+            ->where('type', 'check_out')
+            ->whereIn('category', ['break_start','offsite_start'])
+            ->whereDoesntHave('pairedLog', function ($query) {
+                $query->where('type', 'check_in')
+                      ->whereIn('category', ['break_end','offsite_end']);
+            })->exists();
+
+            if ($existingBreakOrOffsite) {
+                return response()->json([
+                    'message' => 'Employee has already checked out for a break or offsite, must return first to end the shift',
+                ], 422);
+            }
+            // Check if there is not a check-out for this category already without a paired log
+            $shiftId = $existingShift ? $existingShift->id : null;
+            break;
+        case 'break_start':
+            // Check if there is not a check-out for this category already without a paired log 
+            $existingBreak = WorkLog::where('employee_id', $employee->id)
+                ->where('date', '>=', $today)
+                ->where('type', 'check_out')
+                ->where('category', 'break_start')
+                ->whereDoesntHave('pairedLog', function ($query) {
+                    $query->where('type', 'check_in')
+                          ->where('category', 'break_end');
+                })
+                ->first();
+
+            if ($existingBreak) {
+                return response()->json([
+                    'message' => 'Employee has already checked out for a break',
+                ], 422);
+            } else {
+                // Check if there is not a check-out for this category already without a paired log 
+                $existingOffsite = WorkLog::where('employee_id', $employee->id)
+                ->where('date', '>=', $today)
+                ->where('type', 'check_out')
+                ->where('category', 'offsite_start')
+                ->whereDoesntHave('pairedLog', function ($query) {
+                    $query->where('type', 'check_in')
+                        ->where('category', 'offsite_end');
+                })
+                ->first();
+
+                if ($existingOffsite) {
+                    return response()->json([
+                        'message' => 'Employee has already checked out for an offsite',
+                    ], 422);
+                }
+            }
+            
+            $shiftId = null; // As we are checking out for a break, we don't need to pair it with the shift start log
+            break;
+        case 'offsite_start':
+            // Check if there is not a check-out for this category already without a paired log 
+            $existingOffsite = WorkLog::where('employee_id', $employee->id)
+                ->where('date', '>=', $today)
+                ->where('type', 'check_out')
+                ->where('category', 'offsite_start')
+                ->whereDoesntHave('pairedLog', function ($query) {
+                    $query->where('type', 'check_in')
+                          ->where('category', 'offsite_end');
+                })
+                ->first();
+
+            if ($existingOffsite) {
+                return response()->json([
+                    'message' => 'Employee has already checked out for an offsite',
+                ], 422);
+            } else {
+                // Check if there is not a check-out for this category already without a paired log 
+                $existingBreak = WorkLog::where('employee_id', $employee->id)
+                ->where('date', '>=', $today)
+                ->where('type', 'check_out')
+                ->where('category', 'break_start')
+                ->whereDoesntHave('pairedLog', function ($query) {
+                    $query->where('type', 'check_in')
+                        ->where('category', 'break_end');
+                })
+                ->first();
+
+                if ($existingBreak) {
+                    return response()->json([
+                      'message' => 'Employee has already checked out for a break',
+                    ], 422);
+                }
+            }
+            
+            $shiftId = null; // As we are checking out for an offsite, we don't need to pair it with the shift start log
+            break;
+        default:
+            $validated['category'] = 'shift_end'; // Default category for check-out
+    }
+
+    
+
+    // Create the check-out record
+    $workLog = WorkLog::create([
+        'employee_id' => $validated['employee_id'],
+        'date' => now()->toDateString(),
+        'time' => now()->toTimeString(),
+        'type' => 'check_out',
+        'category' => $validated['category'],
+        'ip_address' => $request->ip(),
+        'notes' => $validated['notes'] ?? null,
+        'location' => $request->input('location') ?? null, // Optional location field
+        'paired_log_id' => $shiftId,
+    ]);
+
+    return response()->json([
+        'message' => 'Check-out successful',
+        'work_log' => $workLog
+    ], 201);
+}
+
+/**
+ * Get employee's current status
+ */
+public function getEmployeeStatus(string $employeeId)
+{
+    $employee = Employee::findOrFail($employeeId);
+    
+    // Get the most recent work log entry
+    $lastLog = WorkLog::where('employee_id', $employeeId)
+        ->whereDate('date', now()->toDateString())
+        ->latest('time')
+        ->first();
+        
+    $status = $lastLog && $lastLog->type === 'check_in' ? 'in' : 'out';
+    $category = $lastLog ? $lastLog->category : null;
+    
+    return response()->json([
+        'employee' => $employee->load('user'),
+        'status' => $status,
+        'category' => $category,
+        'last_activity' => $lastLog ? [
+            'time' => $lastLog->time,
+            'notes' => $lastLog->notes
+        ] : null
+    ], 200);
+}
+
+/**
+ * Get daily work hours summary
+ */
+public function summary(Request $request)
+{
+    $request->validate([
+        'employee_id' => 'required|uuid|exists:employees,id',
+        'date' => 'sometimes|required|date',
+    ]);
+    
+    $employee = Employee::findOrFail($request->employee_id);
+    $date = $request->date ?? now()->toDateString();
+    
+    // Get all logs for the day
+    $logs = WorkLog::where('employee_id', $employee->id)
+        ->whereDate('date', $date)
+        ->orderBy('time')
+        ->get();
+        
+    // Group check-ins and check-outs into pairs
+    $pairs = [];
+    $currentCheckIn = null;
+    
+    foreach ($logs as $log) {
+        if ($log->type === 'check_in') {
+            $currentCheckIn = $log;
+        } elseif ($log->type === 'check_out' && $currentCheckIn) {
+            $pairs[] = [
+                'check_in' => $currentCheckIn,
+                'check_out' => $log,
+                'duration_minutes' => Carbon::parse($currentCheckIn->time)
+                    ->diffInMinutes(Carbon::parse($log->time))
+            ];
+            $currentCheckIn = null;
+        }
+    }
+    
+    // Calculate total working time
+    $totalMinutes = collect($pairs)->sum('duration_minutes');
+    $hours = floor($totalMinutes / 60);
+    $minutes = $totalMinutes % 60;
+    
+    return response()->json([
+        'date' => $date,
+        'employee' => $employee->load('user'),
+        'entries' => $pairs,
+        'total_time' => [
+            'hours' => $hours,
+            'minutes' => $minutes,
+            'formatted' => sprintf('%02d:%02d', $hours, $minutes)
+        ],
+        'is_currently_checked_in' => $currentCheckIn !== null
+    ], 200);
+}
 }

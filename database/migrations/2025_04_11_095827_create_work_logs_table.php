@@ -17,6 +17,15 @@ return new class extends Migration
             $table->date('date');
             $table->time('time');
             $table->enum('type', ['check_in', 'check_out']);
+            $table->enum('category', [
+                'shift_start',
+                'break_start', 
+                'offsite_start',
+                'shift_end', 
+                'break_end',
+                'offsite_end'
+            ])->nullable()->default('shift_start');
+            $table->uuid('paired_log_id')->nullable();
             $table->string('ip_address')->nullable();
             $table->string('location')->nullable();
             $table->text('notes')->nullable();
