@@ -120,6 +120,22 @@ class User extends Authenticatable
      */
     public function belongsToCompany(string $companyId): bool
     {
-        return $this->employees()->where('company_id', $companyId)->exists();
+        return $this->employeeRecords()->where('company_id', $companyId)->exists();
+    }
+    
+    /**
+     * Check if user is an administrator.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('Administrator');
+    }
+    
+    /**
+     * Check if user is a manager.
+     */
+    public function isManager(): bool
+    {
+        return $this->hasRole('Manager');
     }
 }

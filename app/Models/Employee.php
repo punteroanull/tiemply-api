@@ -102,4 +102,44 @@ class Employee extends Model
                     ->orderBy('time')
                     ->get();
     }
+
+    /**
+     * Get check-in and check-out for a specific date.
+     */
+    public function getAttendanceForDate($date)
+    {
+        $logs = $this->getWorkLogsForDate($date);
+        
+        $checkIn = $logs->where('type', 'check_in')->first();
+        $checkOut = $logs->where('type', 'check_out')->first();
+        
+        return [
+            'date' => $date,
+            'check_in' => $checkIn,
+            'check_out' => $checkOut,
+            'worked_hours' => $checkIn && $checkOut ? 
+                Carbon::parse($checkIn->time)->diffInHours(Carbon::parse($checkOut->time)) : null
+        ];
+    }
+    
+    /**
+     * Calculate used vacation days in a given year.
+     */
+    public function getUsedVacationDays($year = null)
+    {
+        $year = $year ?? date('Y');
+        
+        $vacationType = AbsenceType::where('code', 'vacation')->first();
+        
+        if (!$vacationType) {
+            return 0;
+        }
+        
+        $absences = $this->absences()
+            ->where('absence_type_id', $vacationType->id)
+            ->whereYear('date', $year)
+            ->count();
+            
+        return $absences;
+    }
 }

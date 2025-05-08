@@ -39,4 +39,47 @@ class Role extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    /**
+     * Check if role is Administrator.
+     */
+    public function isAdmin()
+    {
+        return $this->name === 'Administrator';
+    }
+    
+    /**
+     * Check if role is Manager.
+     */
+    public function isManager()
+    {
+        return $this->name === 'Manager';
+    }
+    
+    /**
+     * Check if role is Employee.
+     */
+    public function isEmployee()
+    {
+        return $this->name === 'Employee';
+    }
+    
+    /**
+     * Check if role is exempt from time tracking.
+     */
+    public function isExempt()
+    {
+        return $this->is_exempt;
+    }
+    
+    /**
+     * Check if role has at least the given access level.
+     * 
+     * @param int $level
+     * @return bool
+     */
+    public function hasAccessLevel($level)
+    {
+        return $this->access_level >= $level;
+    }
 }

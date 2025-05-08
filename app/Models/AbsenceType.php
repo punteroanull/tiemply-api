@@ -66,4 +66,44 @@ class AbsenceType extends Model
     {
         return $query->where('code', 'sick_leave');
     }
+    
+    /**
+     * Check if this type is vacation.
+     */
+    public function isVacation()
+    {
+        return $this->code === 'vacation';
+    }
+    
+    /**
+     * Check if this type is sick leave.
+     */
+    public function isSickLeave()
+    {
+        return $this->code === 'sick_leave';
+    }
+    
+    /**
+     * Check if this type requires approval.
+     */
+    public function requiresApproval()
+    {
+        return $this->requires_approval;
+    }
+    
+    /**
+     * Check if this type affects vacation balance.
+     */
+    public function affectsVacationBalance()
+    {
+        return $this->affects_vacation_balance;
+    }
+    
+    /**
+     * Check if this type is paid.
+     */
+    public function isPaid()
+    {
+        return $this->is_paid;
+    }
 }

@@ -50,4 +50,50 @@ class Company extends Model
     {
         return $this->hasManyThrough(User::class, Employee::class, 'company_id', 'id', 'id', 'user_id');
     }
+
+     /**
+     * Get all absence requests for the company.
+     */
+    public function absenceRequests()
+    {
+        return $this->hasManyThrough(
+            AbsenceRequest::class,
+            Employee::class,
+            'company_id', // Foreign key on employees table
+            'employee_id', // Foreign key on absence_requests table
+            'id', // Local key on companies table
+            'id' // Local key on employees table
+        );
+    }
+    
+    /**
+     * Get all absences for the company.
+     */
+    public function absences()
+    {
+        return $this->hasManyThrough(
+            Absence::class,
+            Employee::class,
+            'company_id', // Foreign key on employees table
+            'employee_id', // Foreign key on absences table
+            'id', // Local key on companies table
+            'id' // Local key on employees table
+        );
+    }
+    
+    /**
+     * Check if company uses business days for vacations.
+     */
+    public function usesBusinessDays()
+    {
+        return $this->vacation_type === 'business_days';
+    }
+    
+    /**
+     * Check if company uses calendar days for vacations.
+     */
+    public function usesCalendarDays()
+    {
+        return $this->vacation_type === 'calendar_days';
+    }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\WorkLogController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\AbsenceRequestController;
+use App\Http\Controllers\AbsenceTypeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,15 +50,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('worklogs', WorkLogController::class);
     Route::post('/worklogs/check-in', [WorkLogController::class, 'checkIn']);
     Route::post('/worklogs/check-out', [WorkLogController::class, 'checkOut']);
-    Route::get('/worklogs/daily-report', [WorkLogController::class, 'dailyReport']);
-    Route::get('/worklogs/weekly-report', [WorkLogController::class, 'weeklyReport']);    
-    Route::get('/worklogs/monthly-report', [WorkLogController::class, 'monthlyReport']);
-    Route::get('/worklogs/status', [WorkLogController::class, 'status']);
+    Route::get('/worklogs/status/{employeeId}', [WorkLogController::class, 'getEmployeeStatus']);
+    Route::get('/worklogs/daily-report/{employeeId}/{period?}', [WorkLogController::class, 'dailyReport']);
+    Route::get('/worklogs/weekly-report/{employeeId}/{period?}', [WorkLogController::class, 'weeklyReport']);
+    Route::get('/worklogs/monthly-report/{employeeId}/{year?}/{month?}', [WorkLogController::class, 'monthlyReport']);
 
     // Absences routes
     Route::apiResource('absences', AbsenceController::class);
     Route::get('/absences/employee/{employee}', [AbsenceController::class, 'byEmployee']);
-    Route::get('/absences/employee/{employee}/type/{type}', [AbsenceController::class, 'byEmployeeAndType']);
+    Route::get('/absences/employee/{employee}/type/{type}', action: [AbsenceController::class, 'byEmployeeAndType']);
     Route::get('/absences/employee/{employee}/period', [AbsenceController::class, 'byEmployeeAndPeriod']);
     
     // Requests routes

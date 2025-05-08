@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\WorkLog;
+use App\Models\Absence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class WorkLogController extends Controller
 {
@@ -22,49 +25,20 @@ class WorkLogController extends Controller
         $validated = $request->validate([
             'employee_id' => 'required|uuid|exists:employees,id',
             'type' => 'required|in:check_in,check_out',
+            'category' => 'nullable|in:shift_start,shift_end,break_start,break_end,offsite_start,offsite_end',
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $employee = Employee::findOrFail($validated['employee_id']);
-
-        // Verify user can log for this employee
-        if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
-            return response()->json(['message' => 'Unauthorized to create work logs for this employee'], 403);
+        switch ($request->type) {
+            case 'check_in':
+                checkIn($request);
+                break;
+            case 'check_out':
+                checkOut($request);
+                break;
+            default:
+                return response()->json(['message' => 'Invalid type'], 422);
         }
-
-        // Use current date and time if not provided
-        $now = Carbon::now();
-        $validated['date'] = $now->toDateString();
-        $validated['time'] = $now->toTimeString();
-
-        // Add IP address if available
-        $validated['ip_address'] = $request->ip();
-
-        // Check if there's already a log of the same type for today
-        $existingLog = WorkLog::where('employee_id', $employee->id)
-            ->where('date', $validated['date'])
-            ->where('type', $validated['type'])
-            ->exists();
-
-        if ($existingLog && $validated['type'] === 'check_in') {
-            return response()->json(['message' => 'Employee has already checked in today'], 422);
-        }
-
-        // If checking out, make sure there's a check-in first
-        if ($validated['type'] === 'check_out') {
-            $checkIn = WorkLog::where('employee_id', $employee->id)
-                ->where('date', $validated['date'])
-                ->where('type', 'check_in')
-                ->exists();
-
-            if (!$checkIn) {
-                return response()->json(['message' => 'Employee must check in before checking out'], 422);
-            }
-        }
-
-        $workLog = WorkLog::create($validated);
-
-        return response()->json($workLog, 201);
     }
 
     /**
@@ -118,7 +92,7 @@ class WorkLogController extends Controller
     }
 
     /**
-     * Employee checkin.
+     * Record a checout event 
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
@@ -232,9 +206,13 @@ class WorkLogController extends Controller
     /**
      * Record a check-out event
      * Note: I substract 1 day from the current date to handle night shifts that may check out the next day.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
 
     //TODO: Try to optimize this method, I think I can group the queries to reduce the number of queries to the database.
+    
     public function checkOut(Request $request)
     {
         $validated = $request->validate([
@@ -243,7 +221,14 @@ class WorkLogController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
         $category = $validated['category'] ?? 'shift_end'; // Default category for check-out
+        
         $employee = Employee::findOrFail($validated['employee_id']);
+
+        // Verify user can check in for this employee
+        if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
+            return response()->json(['message' => 'Unauthorized to check in for this employee'], 403);
+        }
+
         // Check if there's a check-in for today (or yesterday, in case of night shifts) without a check-out for this category
         $today = Carbon::now()->subDays(1)->toDateString();
 
@@ -385,10 +370,12 @@ class WorkLogController extends Controller
     /**
      * Get employee's current status
      */
+
     public function getEmployeeStatus(string $employeeId)
     {
-        $employee = Employee::findOrFail($employeeId);
-
+        $employee = Employee::findOrFail($employeeId);        
+        Gate::authorize('view', $employee);
+        error_log('employeeId: ' . $employeeId);
         // Get the most recent work log entry
         $lastLog = WorkLog::where('employee_id', $employeeId)
             ->whereDate('date', now()->toDateString())
@@ -416,17 +403,25 @@ class WorkLogController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    public function dailyReport(Request $request)
+    public function dailyReport($employeeId, $period = null)
     {
-        $request->validate([
+       
+        /*
+        validator($request->route()->parameters(), [
             'employee_id' => 'required|uuid|exists:employees,id',
             'date' => 'sometimes|required|date',
-        ]);
-
-        $employee = Employee::findOrFail($request->employee_id);
+            ])->validate();
+        */
+        $employee = null;
+        try {
+            $employee = Employee::findOrFail($employeeId);
+        } catch (\Exception $e) {
+            Log::error('Error finding employee: ' . $e->getMessage());
+            return response()->json(['message' => 'Employee not found'], 404);
+        }
+        // Verificar si el usuario puede ver este empleado
         Gate::authorize('view', $employee);
-
-        $date = $request->date ?? Carbon::now()->toDateString();
+        $date = $period != null ? Carbon::parse($period) : Carbon::now();
 
         // Get all logs for the day
         $logs = WorkLog::where('employee_id', $employee->id)
@@ -572,7 +567,7 @@ class WorkLogController extends Controller
             ],
             'in_progress' => $inProgress,
             'all_logs' => $logs
-        ]);
+        ], 200);
     }
 
     /**
@@ -605,20 +600,39 @@ class WorkLogController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function weeklyReport(Request $request)
+    public function weeklyReport($employeeId, $period = null)
     {
-        $request->validate([
-            'employee_id' => 'required|uuid|exists:employees,id',
-            'date' => 'sometimes|required|date',
+        $validator = Validator::make([
+            'employee_id' => $employeeId,
+            'period' => $period,
+        ], [
+            'employee_id' => ['required', 'uuid'],
+            'period' => ['nullable', 'date_format:Y-m-d'],
         ]);
+    
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        $employee = Employee::findOrFail($request->employee_id);
+        $employee = null;
+        try {
+            $employee = Employee::findOrFail($employeeId);
+        } catch (\Exception $e) {
+            Log::error('Error finding employee: ' . $e->getMessage());
+            return response()->json(['message' => 'Employee not found'], 404);
+        }
+
         Gate::authorize('view', $employee);
 
-        // Determine start and end of week based on the given date or current date
-        $date = $request->date ? Carbon::parse($request->date) : Carbon::now();
-        $weekStart = $date->copy()->startOfWeek();
-        $weekEnd = $date->copy()->endOfWeek();
+        $date = $period != null ? Carbon::parse($period) : Carbon::now();
+        $year = $date->year;
+        $month = $date->month;
+        $day = $date->day;
+        // Determine start and end of month
+        $weekStart = Carbon::createFromDate($date)->startOfWeek();
+        $weekEnd = $weekStart->copy()->endOfWeek();
+        $currentDate = Carbon::now();
+
 
         // Get all work logs for the week
         $logs = WorkLog::where('employee_id', $employee->id)
@@ -840,19 +854,34 @@ class WorkLogController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function monthlyReport(Request $request)
+    public function monthlyReport($employeeId, $year = null, $month = null)
     {
-        $request->validate([
-            'employee_id' => 'required|uuid|exists:employees,id',
-            'year' => 'required|integer|min:2000|max:' . (date('Y') + 1),
-            'month' => 'required|integer|min:1|max:12',
+        $validator = Validator::make([
+            'year' => $year,
+            'month' => $month,
+        ], [
+            'year' => ['nullable', 'integer', 'min:2000'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
+    
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        $employee = Employee::findOrFail($request->employee_id);
+        $employee = null;
+        try {
+            $employee = Employee::findOrFail($employeeId);
+        } catch (\Exception $e) {
+            Log::error('Error finding employee: ' . $e->getMessage());
+            return response()->json(['message' => 'Employee not found'], 404);
+        }
+
         Gate::authorize('view', $employee);
 
+        $year = $year ?? Carbon::now()->year;
+        $month = $month ?? Carbon::now()->month;    
         // Determine start and end of month
-        $startDate = Carbon::createFromDate($request->year, $request->month, 1)->startOfMonth();
+        $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
         $currentDate = Carbon::now();
 
@@ -1044,8 +1073,8 @@ class WorkLogController extends Controller
         $absenceTypesArray = array_values($monthlyStats['absence_types']);
 
         return response()->json([
-            'year' => $request->year,
-            'month' => $request->month,
+            'year' => $year,
+            'month' => $month,
             'month_name' => $startDate->format('F'),
             'employee' => $employee->load('user'),
             'days' => $dailyReports,

@@ -45,14 +45,21 @@ class WorkLog extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    /**
+     /**
      * Get the paired log entry.
      */
     public function pairedLog()
     {
-        return $this->hasOne(WorkLog::class, 'paired_log_id');
+        return $this->belongsTo(WorkLog::class, 'paired_log_id');
     }
     
+    /**
+     * Get the logs that are paired with this one.
+     */
+    public function pairedLogs()
+    {
+        return $this->hasMany(WorkLog::class, 'paired_log_id');
+    }
     
     /**
      * Scope a query to only include check-ins.
@@ -77,7 +84,8 @@ class WorkLog extends Model
     {
         return $query->whereBetween('date', [$startDate, $endDate]);
     }
-     /**
+    
+    /**
      * Check if this log is a start event (check-in type).
      */
     public function isStartEvent()
@@ -98,13 +106,34 @@ class WorkLog extends Model
      */
     public function getDurationInMinutes()
     {
-        if (!$this->pairedLog) {
+        if ($this->isStartEvent() && $this->pairedLogs->isNotEmpty()) {
+            $pairedLog = $this->pairedLogs->first();
+            $start = Carbon::parse($this->time);
+            $end = Carbon::parse($pairedLog->time);
+            return $end->diffInMinutes($start);
+        } elseif ($this->isEndEvent() && $this->pairedLog) {
+            $start = Carbon::parse($this->pairedLog->time);
+            $end = Carbon::parse($this->time);
+            return $end->diffInMinutes($start);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get the formatted duration.
+     */
+    public function getFormattedDurationAttribute()
+    {
+        $minutes = $this->getDurationInMinutes();
+        
+        if ($minutes === null) {
             return null;
         }
         
-        $start = \Carbon\Carbon::parse($this->time);
-        $end = \Carbon\Carbon::parse($this->pairedLog->time);
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
         
-        return $end->diffInMinutes($start);
+        return sprintf('%02d:%02d', $hours, $remainingMinutes);
     }
 }

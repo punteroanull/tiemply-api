@@ -54,7 +54,7 @@ class Absence extends Model
         return $this->belongsTo(AbsenceType::class);
     }
 
-    /**
+     /**
      * Get the absence request that owns the absence.
      */
     public function request()
@@ -89,17 +89,41 @@ class Absence extends Model
             return null;
         }
         
-        $start = \Carbon\Carbon::parse($this->start_time);
-        $end = \Carbon\Carbon::parse($this->end_time);
+        $start = Carbon::parse($this->start_time);
+        $end = Carbon::parse($this->end_time);
         
         return $end->diffInHours($start);
     }
-
+    
     /**
-     * Get the notes for the absence.
+     * Check if this absence is a vacation day.
      */
-    public function getNotesAttribute($value)
+    public function isVacation()
     {
-        return $value ?: 'No notes provided.';
+        return $this->absenceType->isVacation();
+    }
+    
+    /**
+     * Check if this absence is a sick leave day.
+     */
+    public function isSickLeave()
+    {
+        return $this->absenceType->isSickLeave();
+    }
+    
+    /**
+     * Check if this absence was created from a request.
+     */
+    public function hasRequest()
+    {
+        return $this->request_id !== null;
+    }
+    
+    /**
+     * Check if this absence is for a full day.
+     */
+    public function isFullDay()
+    {
+        return !$this->is_partial;
     }
 }
