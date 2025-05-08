@@ -233,4 +233,51 @@ class AbsenceController extends Controller
             'calendar' => array_values($calendarData),
         ]);
     }
+
+     /**
+     * Get absences by employee and type.
+     *
+     * @param  \App\Models\Employee  $employee
+     * @param  string  $type
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function byEmployeeAndType(Employee $employee, $type)
+    {
+        Gate::authorize('view', $employee);
+        
+        $absences = $employee->absences()
+            ->whereHas('absenceType', function ($query) use ($type) {
+                $query->where('code', $type);
+            })
+            ->with(['absenceType', 'request'])
+            ->orderBy('date', 'desc')
+            ->get();
+            
+        return response()->json($absences);
+    }
+
+    /**
+     * Get absences by employee and period.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Employee  $employee
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function byEmployeeAndPeriod(Request $request, Employee $employee)
+    {
+        Gate::authorize('view', $employee);
+        
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+        
+        $absences = $employee->absences()
+            ->whereBetween('date', [$request->start_date, $request->end_date])
+            ->with(['absenceType', 'request'])
+            ->orderBy('date')
+            ->get();
+            
+        return response()->json($absences);
+    }
 }

@@ -49,10 +49,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('worklogs', WorkLogController::class);
     Route::post('/worklogs/check-in', [WorkLogController::class, 'checkIn']);
     Route::post('/worklogs/check-out', [WorkLogController::class, 'checkOut']);
-    Route::get('/worklogs/employee/{employee}', [WorkLogController::class, 'byEmployee']);
-    Route::get('/worklogs/employee/{employee}/today', [WorkLogController::class, 'todayByEmployee']);
-    Route::get('/worklogs/employee/{employee}/date/{date}', [WorkLogController::class, 'byEmployeeAndDate']);
-    Route::get('/worklogs/employee/{employee}/period', [WorkLogController::class, 'byEmployeeAndPeriod']);
+    Route::get('/worklogs/daily-report', [WorkLogController::class, 'dailyReport']);
+    Route::get('/worklogs/weekly-report', [WorkLogController::class, 'weeklyReport']);    
+    Route::get('/worklogs/monthly-report', [WorkLogController::class, 'monthlyReport']);
+    Route::get('/worklogs/status', [WorkLogController::class, 'status']);
 
     // Absences routes
     Route::apiResource('absences', AbsenceController::class);

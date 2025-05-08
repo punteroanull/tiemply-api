@@ -243,6 +243,42 @@ class AbsenceRequestController extends Controller
     }
 
     /**
+     * Approve an absence request.
+     *
+     * @param  \App\Models\AbsenceRequest  $absenceRequest
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function approve(AbsenceRequest $request)
+    {
+        $httpRequest = new Request([
+            'status' => 'approved'
+        ]);
+        
+        return $this->review($httpRequest, $request);
+    }
+
+    /**
+     * Reject an absence request.
+     *
+     * @param  \Illuminate\Http\Request  $httpRequest
+     * @param  \App\Models\AbsenceRequest  $absenceRequest
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function reject(Request $httpRequest, AbsenceRequest $request)
+    {
+        $validated = $httpRequest->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+        
+        $httpRequest = new Request([
+            'status' => 'rejected',
+            'rejection_reason' => $validated['rejection_reason']
+        ]);
+        
+        return $this->review($httpRequest, $request);
+    }
+
+    /**
      * Remove the specified absence request from storage.
      *
      * @param  \App\Models\AbsenceRequest  $absenceRequest
@@ -262,6 +298,86 @@ class AbsenceRequestController extends Controller
         $absenceRequest->delete();
 
         return response()->json(null, 204);
+    }
+
+
+    /**
+     * Get absence requests by employee.
+     *
+     * @param  \App\Models\Employee  $employee
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function byEmployee(Employee $employee)
+    {
+        Gate::authorize('view', $employee);
+        
+        $requests = $employee->absenceRequests()
+            ->with(['absenceType', 'reviewer'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json($requests);
+    }
+
+    
+    /**
+     * Get pending absence requests by employee.
+     *
+     * @param  \App\Models\Employee  $employee
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function pendingByEmployee(Employee $employee)
+    {
+        Gate::authorize('view', $employee);
+        
+        $requests = $employee->absenceRequests()
+            ->where('status', 'pending')
+            ->with(['absenceType', 'reviewer'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json($requests);
+    }
+
+    /**
+     * Get absence requests by company.
+     *
+     * @param  \App\Models\Company  $company
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function byCompany(Company $company)
+    {
+        Gate::authorize('view', $company);
+        
+        $requests = AbsenceRequest::whereHas('employee', function ($query) use ($company) {
+            $query->where('company_id', $company->id);
+        })
+        ->with(['employee.user', 'absenceType', 'reviewer'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+            
+        return response()->json($requests);
+    }
+
+    /**
+     * Get pending absence requests by company.
+     *
+     * @param  \App\Models\Company  $company
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function pendingByCompany(Company $company)
+    {
+        Gate::authorize('view', $company);
+        
+        $requests = AbsenceRequest::whereHas('employee', function ($query) use ($company) {
+            $query->where('company_id', $company->id);
+        })
+        ->where('status', 'pending')
+        ->with(['employee.user', 'absenceType'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+            
+        return response()->json($requests);
     }
     
     /**
