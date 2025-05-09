@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -33,7 +35,7 @@ use App\Traits\HasUuid;
  * @property \Illuminate\Database\Eloquent\Collection|\App\Models\Company[] $companies
  */
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, HasUuid;
 
@@ -64,6 +66,8 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $primary = 'uuid';
+    
     /**
      * The attributes that should be cast.
      *
@@ -137,5 +141,10 @@ class User extends Authenticatable
     public function isManager(): bool
     {
         return $this->hasRole('Manager');
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->isAdmin() || $this->isManager();
     }
 }
