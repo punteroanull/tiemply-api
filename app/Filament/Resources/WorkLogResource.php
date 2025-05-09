@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class WorkLogResource extends Resource
 {
@@ -25,7 +26,16 @@ class WorkLogResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('employee_id')
+                Forms\Components\Select::make('employee_id')
+                    ->label('Employee')
+                    ->options(fn () => \App\Models\Employee::query()
+                        ->whereHas('company', fn ($query) => $query->whereIn('id', auth()->user()->companiesEloquent->pluck('id')))
+                        ->with('user') // Carga la relación con User
+                        ->get()
+                        ->pluck('user.name', 'id') // Obtén los nombres de los usuarios y los IDs de los empleados
+                        ->toArray()
+                    )
+                    ->searchable() // Permite buscar por nombre
                     ->required(),
                 Forms\Components\DatePicker::make('date')
                     ->required(),
@@ -51,19 +61,31 @@ class WorkLogResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID'),
-                Tables\Columns\TextColumn::make('employee_id'),
+                    ->label('ID')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('employee_id')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('employee.user.name')
+                    ->label('Employee')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('date')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('time'),
-                Tables\Columns\TextColumn::make('type'),
+                Tables\Columns\TextColumn::make('time')
+                    ->dateTime('H:i'),
+                Tables\Columns\TextColumn::make('type')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('category'),
-                Tables\Columns\TextColumn::make('paired_log_id'),
+                Tables\Columns\TextColumn::make('paired_log_id')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('ip_address')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('location')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -74,8 +96,31 @@ class WorkLogResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
-            ])
+                Tables\Filters\SelectFilter::make('category')
+                    ->options(fn () => WorkLog::query()->distinct()->pluck('category', 'category')->toArray())
+                    ->label('Category'),
+                Tables\Filters\SelectFilter::make('type')
+                    ->options(fn () => WorkLog::query()->distinct()->pluck('type', 'type')->toArray())
+                    ->label('Type'),
+                    Tables\Filters\Filter::make('date_range')
+                    ->label('Date Range')
+                    ->form([
+                        Forms\Components\DatePicker::make('date_from')
+                            ->label('From'),
+                        Forms\Components\DatePicker::make('date_until')
+                            ->label('Until'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['date_from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('date', '>=', $date),
+                            )
+                            ->when(
+                                $data['date_until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('date', '<=', $date),
+                            );
+                    }),])
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -100,5 +145,26 @@ class WorkLogResource extends Resource
             'create' => Pages\CreateWorkLog::route('/create'),
             'edit' => Pages\EditWorkLog::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Si el usuario es Administrador, puede ver todos los empleados
+        if (Auth::user()->hasRole('Administrator')) {
+            return $query;
+        }
+
+        // Si el usuario es Manager, filtra los empleados de las empresas a las que pertenece
+        if (Auth::user()->hasRole('Manager')) {
+            $companyIds = Auth::user()->companies()->pluck('id'); 
+            return $query->whereHas('employee', function (Builder $query) use ($companyIds) {
+                $query->whereIn('company_id', $companyIds);
+            });
+        }
+
+        // Por defecto, no mostrar nada si no tiene permisos
+        return $query->whereRaw('1 = 0');
     }
 }

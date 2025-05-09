@@ -251,7 +251,7 @@ class WorkLogController extends Controller
         }
         switch ($category) {
             case 'shift_end':
-                $existingBreakOrOffsite = $existingBreak = WorkLog::where('employee_id', $employee->id)
+                $existingBreakOrOffsite = WorkLog::where('employee_id', $employee->id)
                     ->where('date', '>=', $today)
                     ->where('type', 'check_out')
                     ->whereIn('category', ['break_start', 'offsite_start'])

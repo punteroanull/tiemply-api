@@ -74,7 +74,7 @@ class AbsenceRequestPolicy
 
         // Los gerentes pueden ver las solicitudes de los empleados de sus empresas
         if ($user->isManager() && $absenceRequest->employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($absenceRequest->employee->company_id, $userCompanyIds);
         }
@@ -115,7 +115,7 @@ class AbsenceRequestPolicy
         
         // Los gerentes pueden crear solicitudes para los empleados de sus empresas
         if ($user->isManager()) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($employee->company_id, $userCompanyIds);
         }
@@ -150,6 +150,11 @@ class AbsenceRequestPolicy
             return true;
         }
 
+        // Los managers pueden editar registros de empleados de sus empresas
+        if ($user->hasRole('Manager')) {
+            return $user->companies()->pluck('id')->contains($absenceRequest->employee->company_id);
+        }
+
         return false;
     }
 
@@ -182,7 +187,7 @@ class AbsenceRequestPolicy
         
         // Los gerentes pueden revisar las solicitudes de los empleados de sus empresas
         if ($user->isManager() && $absenceRequest->employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($absenceRequest->employee->company_id, $userCompanyIds);
         }

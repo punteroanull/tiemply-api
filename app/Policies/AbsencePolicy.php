@@ -74,7 +74,7 @@ class AbsencePolicy
 
         // Los gerentes pueden ver las ausencias de los empleados de sus empresas
         if ($user->isManager() && $absence->employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($absence->employee->company_id, $userCompanyIds);
         }
@@ -104,18 +104,19 @@ class AbsencePolicy
     public function update(User $user, Absence $absence)
     {
         // No se pueden actualizar ausencias vinculadas a solicitudes
+        /*
         if ($absence->request_id) {
             return false;
         }
-        
+        */
         // Los administradores pueden actualizar cualquier ausencia
         if ($user->isAdmin()) {
             return true;
         }
 
         // Los gerentes pueden actualizar las ausencias de los empleados de sus empresas
-        if ($user->isManager() && $absence->employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+        if ($user->isManager()) {
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($absence->employee->company_id, $userCompanyIds);
         }
@@ -144,7 +145,7 @@ class AbsencePolicy
 
         // Los gerentes pueden eliminar las ausencias de los empleados de sus empresas
         if ($user->isManager() && $absence->employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($absence->employee->company_id, $userCompanyIds);
         }

@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Employee;
+use App\Models\WorkLog;
 use Illuminate\Auth\Access\Response;
 
 class WorkLogPolicy
@@ -34,13 +35,13 @@ class WorkLogPolicy
      * @param  \App\Models\Employee  $workLog
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function view(User $user, Employee $employee)
+    public function view(User $user, Worklog $worklog)
     {
         
         // Verificar que el workLog tiene un empleado asociado
-        if ($employee) {
+        if ($worklog->employee) {
             // El usuario puede ver sus propios registros de trabajo
-            if ($user->id === $employee->user_id) {
+            if ($user->id === $worklog->employee->user_id) {
                 return true;
             }
         }
@@ -51,10 +52,10 @@ class WorkLogPolicy
         }
 
         // Los gerentes pueden ver los registros de trabajo de los empleados de sus empresas
-        if ($user->isManager() && $employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+        if ($user->isManager() && $worklog->employee) {
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
-            return in_array($employee->company_id, $userCompanyIds);
+            return in_array($worklog->employee->company_id, $userCompanyIds);
         }
 
         return false;
@@ -81,10 +82,10 @@ class WorkLogPolicy
      * @param  \App\Models\Employee  $employee
      * @return bool
      */
-    public function createFor(User $user, Employee $employee)
+    public function createFor(User $user, WorkLog $worklog)
     {
         // El usuario puede crear registros para sí mismo
-        if ($user->id === $employee->user_id) {
+        if ($user->id === $worklog->employee->user_id) {
             return true;
         }
         
@@ -95,9 +96,9 @@ class WorkLogPolicy
         
         // Los gerentes pueden crear registros para los empleados de sus empresas
         if ($user->isManager()) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
-            return in_array($employee->company_id, $userCompanyIds);
+            return in_array($worklog->employee->company_id, $userCompanyIds);
         }
         
         return false;
@@ -110,7 +111,7 @@ class WorkLogPolicy
      * @param  \App\Models\WorkLog  $workLog
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function update(User $user, Employee $employee)
+    public function update(User $user, WorkLog $worklog)
     {
         // Los administradores pueden actualizar cualquier registro de trabajo
         if ($user->isAdmin()) {
@@ -118,10 +119,10 @@ class WorkLogPolicy
         }
 
         // Los gerentes pueden actualizar los registros de trabajo de los empleados de sus empresas
-        if ($user->isManager() && $employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+        if ($user->isManager() && $worklog->employee) {
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
-            return in_array($employee->company_id, $userCompanyIds);
+            return in_array($worklog->employee->company_id, $userCompanyIds);
         }
 
         return false;
@@ -134,7 +135,7 @@ class WorkLogPolicy
      * @param  \App\Models\WorkLog  $workLog
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function delete(User $user, Employee $employee)
+    public function delete(User $user, WorkLog $worklog)
     {
         // Los administradores pueden eliminar cualquier registro de trabajo
         if ($user->isAdmin()) {
@@ -142,10 +143,10 @@ class WorkLogPolicy
         }
 
         // Los gerentes pueden eliminar los registros de trabajo de los empleados de sus empresas
-        if ($user->isManager() && $employee) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+        if ($user->isManager() && $worklog->employee) {
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
-            return in_array($employee->company_id, $userCompanyIds);
+            return in_array($worklog->employee->company_id, $userCompanyIds);
         }
 
         return false;

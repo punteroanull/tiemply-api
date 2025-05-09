@@ -45,6 +45,9 @@ class AbsenceRequest extends Model
         'reviewed_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'days_count',
+    ];
     /**
      * Get the employee that owns the absence request.
      */
