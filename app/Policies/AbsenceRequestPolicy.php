@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\AbsenceRequest;
 use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Auth\Access\Response;
 
 class AbsenceRequestPolicy

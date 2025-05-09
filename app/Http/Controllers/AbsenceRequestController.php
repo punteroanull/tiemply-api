@@ -199,75 +199,103 @@ class AbsenceRequestController extends Controller
      * @param  \App\Models\AbsenceRequest  $absenceRequest
      * @return \Illuminate\Http\JsonResponse
      */
-    public function review(Request $request, AbsenceRequest $absenceRequest)
-    {
-        Gate::authorize('review', $absenceRequest);
+    /**
+ * Review an absence request (approve or reject).
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @param  \App\Models\AbsenceRequest  $absenceRequest
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function review(Request $request, AbsenceRequest $absenceRequest)
+{
+    // Check if the user has permission to review the absence request
+    Gate::authorize('review', $absenceRequest);
 
-        // Only pending requests can be reviewed
-        if (!$absenceRequest->isPending()) {
+    // Only pending requests can be reviewed
+    if (!$absenceRequest->isPending()) {
+        return response()->json([
+            'message' => 'Only pending requests can be reviewed.',
+        ], 422);
+    }
+
+    $validated = $request->validate([
+        'status' => 'required|in:approved,rejected',
+        'rejection_reason' => 'required_if:status,rejected|nullable|string|max:500',
+    ]);
+
+    // Check if there are enough vacation days if approving
+    if ($validated['status'] === 'approved') {
+        $absenceRequest->load(['absenceType', 'employee']);
+        
+        if ($absenceRequest->absenceType->affects_vacation_balance && 
+            $absenceRequest->employee->remaining_vacation_days < $absenceRequest->getDaysCountAttribute()) {
             return response()->json([
-                'message' => 'Only pending requests can be reviewed.',
+                'message' => 'Not enough vacation days available.',
+                'days_requested' => $absenceRequest->getDaysCountAttribute(),
+                'days_available' => $absenceRequest->employee->remaining_vacation_days,
             ], 422);
         }
-
-        $validated = $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:500',
-        ]);
-
-        DB::transaction(function () use ($absenceRequest, $validated, $request) {
-            $absenceRequest->status = $validated['status'];
-            $absenceRequest->reviewed_by = auth()->id();
-            $absenceRequest->reviewed_at = now();
-            
-            if ($validated['status'] === 'rejected') {
-                $absenceRequest->rejection_reason = $validated['rejection_reason'];
-            } else {
-                // If approved, create absence records
-                $this->createAbsenceRecords($absenceRequest);
-                
-                // Update vacation balance if applicable
-                if ($absenceRequest->absenceType->affects_vacation_balance) {
-                    $daysRequested = $absenceRequest->getDaysCountAttribute();
-                    $employee = $absenceRequest->employee;
-                    $employee->remaining_vacation_days -= $daysRequested;
-                    $employee->save();
-                }
-            }
-            
-            $absenceRequest->save();
-        });
-
-        $absenceRequest->load(['employee.user', 'absenceType', 'reviewer']);
-
-        return response()->json($absenceRequest);
     }
+
+    DB::transaction(function () use ($absenceRequest, $validated) {
+        $absenceRequest->status = $validated['status'];
+        $absenceRequest->reviewed_by = auth()->id();
+        $absenceRequest->reviewed_at = now();
+        
+        if ($validated['status'] === 'rejected') {
+            $absenceRequest->rejection_reason = $validated['rejection_reason'];
+        } else {
+            // If approved, create absence records
+            $this->createAbsenceRecords($absenceRequest);
+            
+            // Update vacation balance if applicable
+            if ($absenceRequest->absenceType->affects_vacation_balance) {
+                $daysRequested = $absenceRequest->getDaysCountAttribute();
+                $employee = $absenceRequest->employee;
+                $employee->remaining_vacation_days -= $daysRequested;
+                $employee->save();
+            }
+        }
+        
+        $absenceRequest->save();
+    });
+
+    $absenceRequest->load(['employee.user', 'absenceType', 'reviewer']);
+
+    return response()->json($absenceRequest);
+
+}
 
     /**
      * Approve an absence request.
      *
-     * @param  \App\Models\AbsenceRequest  $absenceRequest
+     * @param  \App\Models\Request  $absenceRequest
      * @return \Illuminate\Http\JsonResponse
      */
-    public function approve(AbsenceRequest $request)
+    public function approve(Request $httpRequest)
     {
+        $validated = $httpRequest->validate([
+            'request_id' => 'required|uuid',
+        ]);
+
         $httpRequest = new Request([
             'status' => 'approved'
         ]);
+        $absenceRequest = AbsenceRequest::findOrFail($validated['request_id']);
         
-        return $this->review($httpRequest, $request);
+        return $this->review($httpRequest, $absenceRequest);
     }
 
     /**
      * Reject an absence request.
      *
      * @param  \Illuminate\Http\Request  $httpRequest
-     * @param  \App\Models\AbsenceRequest  $absenceRequest
      * @return \Illuminate\Http\JsonResponse
      */
-    public function reject(Request $httpRequest, AbsenceRequest $request)
+    public function reject(Request $httpRequest)
     {
         $validated = $httpRequest->validate([
+            'request_id' => 'required|uuid',
             'rejection_reason' => 'required|string|max:500',
         ]);
         
@@ -275,8 +303,10 @@ class AbsenceRequestController extends Controller
             'status' => 'rejected',
             'rejection_reason' => $validated['rejection_reason']
         ]);
+        $absenceRequest = AbsenceRequest::findOrFail($validated['request_id']);
+
         
-        return $this->review($httpRequest, $request);
+        return $this->review($httpRequest, $absenceRequest);
     }
 
     /**
