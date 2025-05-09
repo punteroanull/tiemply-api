@@ -12,12 +12,16 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class CompanyResource extends Resource
 {
     protected static ?string $model = Company::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+
+    protected static ?string $navigationGroup = 'Companies';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -88,6 +92,9 @@ class CompanyResource extends Resource
             ->filters([
                 //
             ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make(),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -102,6 +109,8 @@ class CompanyResource extends Resource
     {
         return [
             //
+            RelationManagers\EmployeesRelationManager::class, 
+
         ];
     }
 
@@ -112,5 +121,24 @@ class CompanyResource extends Resource
             'create' => Pages\CreateCompany::route('/create'),
             'edit' => Pages\EditCompany::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Si el usuario es Administrador, puede ver todos los empleados
+        if (Auth::user()->hasRole('Administrator')) {
+            return $query;
+        }
+
+        // Si el usuario es Manager, filtra los empleados de las empresas a las que pertenece
+        if (Auth::user()->hasRole('Manager')) {
+            $companyIds = Auth::user()->companies()->pluck('id'); 
+            return $query->whereIn('id', $companyIds);
+        }
+
+        // Por defecto, no mostrar nada si no tiene permisos
+        return $query->whereRaw('1 = 0');
     }
 }

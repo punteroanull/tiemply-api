@@ -17,8 +17,15 @@ class AbsenceRequestPolicy
      */
     public function viewAny(User $user)
     {
-        // Los administradores pueden ver todas las solicitudes
-        return $user->isAdmin();
+        // Los administradores pueden actualizar cualquier ausencia
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Los gerentes pueden actualizar las ausencias de sus empresas
+        if ($user->isManager()) {
+            return $user->companiesEloquent()->exists();
+        }
     }
 
     /**

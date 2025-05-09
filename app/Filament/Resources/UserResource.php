@@ -17,7 +17,9 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationGroup = 'System';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -38,7 +40,8 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('identification_number')
                     ->maxLength(255)
                     ->default(null),
-                Forms\Components\DatePicker::make('birth_date'),
+                Forms\Components\DatePicker::make('birth_date')
+                    ->format('Y-m-d'),
                 Forms\Components\TextInput::make('phone')
                     ->tel()
                     ->maxLength(255)
@@ -48,7 +51,8 @@ class UserResource extends Resource
                     ->default(null),
                 Forms\Components\TextInput::make('role_id'),
                 Forms\Components\DateTimePicker::make('registered_at')
-                    ->required(),
+                    ->required()
+                    ->format('Y-m-d'),
             ]);
     }
 
@@ -89,6 +93,9 @@ class UserResource extends Resource
             ])
             ->filters([
                 //
+            ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

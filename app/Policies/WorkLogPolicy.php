@@ -16,8 +16,15 @@ class WorkLogPolicy
      */
     public function viewAny(User $user)
     {
-        // Solo los administradores pueden ver todos los registros de trabajo
-        return $user->isAdmin();
+        // Los administradores pueden actualizar cualquier ausencia
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Los gerentes pueden actualizar las ausencias de sus empresas
+        if ($user->isManager()) {
+            return $user->companiesEloquent()->exists();
+        }
     }
 
     /**

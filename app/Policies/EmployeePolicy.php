@@ -16,8 +16,17 @@ class EmployeePolicy
      */
     public function viewAny(User $user)
     {
-        // Solo los administradores pueden ver todos los empleados
-        return $user->isAdmin();
+        // Los administradores pueden ver cualquier empleado
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Los gerentes pueden ver a los empleados de sus empresas
+        if ($user->isManager()) {
+            return $user->companiesEloquent()->exists();
+        }
+
+        return false;
     }
 
     /**
@@ -41,7 +50,7 @@ class EmployeePolicy
 
         // Los gerentes pueden ver a los empleados de sus empresas
         if ($user->isManager()) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($employee->company_id, $userCompanyIds);
         }
@@ -77,7 +86,7 @@ class EmployeePolicy
 
         // Los gerentes pueden actualizar a los empleados de sus empresas
         if ($user->isManager()) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($employee->company_id, $userCompanyIds);
         }
@@ -101,7 +110,7 @@ class EmployeePolicy
 
         // Los gerentes pueden eliminar a los empleados de sus empresas
         if ($user->isManager()) {
-            $userCompanyIds = $user->companies->pluck('id')->toArray();
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
             
             return in_array($employee->company_id, $userCompanyIds);
         }

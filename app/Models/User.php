@@ -101,13 +101,18 @@ class User extends Authenticatable implements FilamentUser
      */
     public function companies()
     {
+        return $this->employeeRecords()->with('company')->get()->pluck(value: 'company');
+    }
+
+    public function companiesEloquent()
+    {
         return $this->hasManyThrough(
-            Company::class,
-            Employee::class,
-            'user_id',    // Foreign key on Employee
-            'id',         // Foreign key on Company
-            'id',         // Local key on User
-            'company_id'  // Local key on Employee
+            \App\Models\Company::class, // Modelo final (Company)
+            \App\Models\Employee::class, // Modelo intermedio (Employee)
+            'user_id', // Clave foránea en la tabla employees
+            'id', // Clave foránea en la tabla companies
+            'id', // Clave local en la tabla users
+            'company_id' // Clave local en la tabla employees
         );
     }
     
