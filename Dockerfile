@@ -13,7 +13,7 @@ WORKDIR /App
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
-RUN install-php-extensions pdo_mysql mbstring exif pcntl bcmath gd zip
+RUN install-php-extensions pdo_mysql mbstring exif pcntl bcmath gd zip sodium intl
 RUN git config --global --add safe.directory /App
 
 RUN groupadd -g 1000 app && \
