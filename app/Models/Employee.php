@@ -89,7 +89,7 @@ class Employee extends Model
         $start = \Carbon\Carbon::parse($this->contract_start_time);
         $end = \Carbon\Carbon::parse($this->contract_end_time);
         
-        return $end->diffInHours($start);
+        return abs($end->diffInHours($start));
     }
     
     /**

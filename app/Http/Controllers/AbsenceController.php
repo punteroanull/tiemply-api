@@ -19,48 +19,52 @@ class AbsenceController extends Controller
      */
     public function index(Request $request)
     {
-        $request->validate([
-            'employee_id' => 'sometimes|required|uuid|exists:employees,id',
-            'company_id' => 'sometimes|required|uuid|exists:companies,id',
-            'start_date' => 'sometimes|required|date',
-            'end_date' => 'sometimes|required|date|after_or_equal:start_date',
-            'absence_type_id' => 'sometimes|required|uuid|exists:absence_types,id',
-        ]);
-        
-        if ($request->has('company_id')) {
-            Gate::authorize('viewAnyForCompany', [Absence::class, $request->company_id]);
-            
-            $query = Absence::whereHas('employee', function ($q) use ($request) {
-                $q->where('company_id', $request->company_id);
-            });
-        } elseif ($request->has('employee_id')) {
-            $employee = Employee::findOrFail($request->employee_id);
-            Gate::authorize('view', $employee);
-            
-            $query = Absence::where('employee_id', $request->employee_id);
-        } else {
-            Gate::authorize('viewAny', Absence::class);
-            
-            $query = Absence::query();
-        }
-        
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('date', [$request->start_date, $request->end_date]);
-        } elseif ($request->has('start_date')) {
-            $query->where('date', '>=', $request->start_date);
-        } elseif ($request->has('end_date')) {
-            $query->where('date', '<=', $request->end_date);
-        }
-        
-        if ($request->has('absence_type_id')) {
-            $query->where('absence_type_id', $request->absence_type_id);
-        }
-        
-        $absences = $query->with(['employee.user', 'absenceType', 'request'])
-            ->orderBy('date')
-            ->get();
+        try {
+            $request->validate([
+                'employee_id' => 'sometimes|required|uuid|exists:employees,id',
+                'company_id' => 'sometimes|required|uuid|exists:companies,id',
+                'start_date' => 'sometimes|required|date',
+                'end_date' => 'sometimes|required|date|after_or_equal:start_date',
+                'absence_type_id' => 'sometimes|required|uuid|exists:absence_types,id',
+            ]);
 
-        return response()->json($absences);
+            if ($request->has('company_id')) {
+                Gate::authorize('viewAnyForCompany', [Absence::class, $request->company_id]);
+
+                $query = Absence::whereHas('employee', function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id);
+                });
+            } elseif ($request->has('employee_id')) {
+                $employee = Employee::findOrFail($request->employee_id);
+                Gate::authorize('view', $employee);
+
+                $query = Absence::where('employee_id', $request->employee_id);
+            } else {
+                Gate::authorize('viewAny', Absence::class);
+
+                $query = Absence::query();
+            }
+
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $query->whereBetween('date', [$request->start_date, $request->end_date]);
+            } elseif ($request->has('start_date')) {
+                $query->where('date', '>=', $request->start_date);
+            } elseif ($request->has('end_date')) {
+                $query->where('date', '<=', $request->end_date);
+            }
+
+            if ($request->has('absence_type_id')) {
+                $query->where('absence_type_id', $request->absence_type_id);
+            }
+
+            $absences = $query->with(['employee.user', 'absenceType', 'request'])
+                ->orderBy('date')
+                ->get();
+
+            return response()->json($absences);
+        } catch (\Exception $e) {
+            dd($e->getMessage());
+        }
     }
 
     /**

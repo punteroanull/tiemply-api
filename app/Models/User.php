@@ -101,7 +101,18 @@ class User extends Authenticatable implements FilamentUser
      */
     public function companies()
     {
-        return $this->employeeRecords()->with('company')->get()->pluck(value: 'company');
+        return $this->employeeRecords()->with('company')->get()->pluck('company');
+    }
+
+    public function getCompanies()
+    {
+        return $this->employeeRecords()
+            ->with('company')
+            ->get()
+            ->map(function ($employee) {
+                return $employee->company;
+            })
+            ->filter(); // Asegúrate de filtrar valores nulos
     }
 
     public function companiesEloquent()

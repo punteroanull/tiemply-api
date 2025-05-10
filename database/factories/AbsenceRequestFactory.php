@@ -3,6 +3,12 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\AbsenceRequest;
+use App\Models\AbsenceType;
+use App\Models\Employee;
+use App\Models\User;
+use Illuminate\Support\Carbon;
+
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\AbsenceRequest>

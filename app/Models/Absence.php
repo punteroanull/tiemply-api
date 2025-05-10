@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasUuid;
+use Illuminate\Support\Carbon;
+use App\Models\AbsenceRequest;
+use App\Models\AbsenceType;
+use App\Models\Employee;
 
 class Absence extends Model
 {
@@ -92,7 +96,7 @@ class Absence extends Model
         $start = Carbon::parse($this->start_time);
         $end = Carbon::parse($this->end_time);
         
-        return $end->diffInHours($start);
+        return abs($end->diffInHours($start));
     }
     
     /**

@@ -122,6 +122,8 @@ class AbsenceRequestController extends Controller
         // Set default status based on whether approval is required
         if (!$absenceType->requires_approval) {
             $validated['status'] = 'approved';
+        } else {
+            $validated['status'] = 'pending'; // Pendingby defult
         }
         
         // Create the request
@@ -141,7 +143,11 @@ class AbsenceRequestController extends Controller
         
         $absenceRequest->load(['employee.user', 'absenceType']);
         
-        return response()->json($absenceRequest, 201);
+        return response()->json([
+            'employee_id' => $absenceRequest->employee_id,
+            'absence_type_id' => $absenceRequest->absence_type_id,
+            'status' => $absenceRequest->status,
+        ], 201);
     }
 
     /**

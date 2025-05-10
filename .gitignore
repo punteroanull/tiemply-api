@@ -34,3 +34,4 @@ Homestead.json
 auth.json
 storage/framework/views/fdb61930670229bee544f657fc95ebea.php
 storage/logs/laravel.log
+.env

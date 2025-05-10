@@ -2,6 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
+use App\Models\Employee;
+use App\Models\Company;
+
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

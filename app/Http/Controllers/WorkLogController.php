@@ -422,6 +422,7 @@ class WorkLogController extends Controller
         // Verificar si el usuario puede ver este empleado
         Gate::authorize('view', $employee);
         $date = $period != null ? Carbon::parse($period) : Carbon::now();
+        //dd($date);
 
         // Get all logs for the day
         $logs = WorkLog::where('employee_id', $employee->id)
