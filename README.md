@@ -29,7 +29,7 @@ Tiemply is a comprehensive employee time management system built with Laravel 12
 ### 🚧 In Progress (Coming Soon)
 - Enhanced reporting capabilities
 
-### 🔮 Planned (Future Releases)
+### 📅 Planned (Future Releases)
 - Internationalization support
 - Calendar integration (Google Calendar, Outlook)
 - Push notifications
@@ -81,7 +81,7 @@ The API is currently functional for core time-tracking operations, allowing comp
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/tiemply-api.git
+   git clone https://github.com/punteroanull/tiemply-api.git
    cd tiemply-api
    ```
 
@@ -178,3 +178,9 @@ This project is licensed under the Apache License 2.0 - see the LICENSE file for
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
