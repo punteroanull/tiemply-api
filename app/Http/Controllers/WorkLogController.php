@@ -279,9 +279,12 @@ class WorkLogController extends Controller
                     ->where('date', '>=', $today)
                     ->where('type', 'check_out')
                     ->where('category', 'break_start')
-                    ->whereDoesntHave('pairedLog', function ($query) {
-                        $query->where('type', 'check_in')
-                            ->where('category', 'break_end');
+                    ->whereNotExists(function ($query) {
+                        $query->select(\DB::raw(1))
+                            ->from('work_logs as paired')
+                            ->whereRaw('paired.paired_log_id = work_logs.id')
+                            ->where('paired.type', 'check_in')
+                            ->where('paired.category', 'break_end');
                     })
                     ->first();
 
@@ -295,9 +298,12 @@ class WorkLogController extends Controller
                         ->where('date', '>=', $today)
                         ->where('type', 'check_out')
                         ->where('category', 'offsite_start')
-                        ->whereDoesntHave('pairedLog', function ($query) {
-                            $query->where('type', 'check_in')
-                                ->where('category', 'offsite_end');
+                        ->whereNotExists(function ($query) {
+                            $query->select(\DB::raw(1))
+                                ->from('work_logs as paired')
+                                ->whereRaw('paired.paired_log_id = work_logs.id')
+                                ->where('paired.type', 'check_in')
+                                ->where('paired.category', 'offsite_end');
                         })
                         ->first();
 
@@ -312,15 +318,18 @@ class WorkLogController extends Controller
                 break;
             case 'offsite_start':
                 // Check if there is not a check-out for this category already without a paired log 
-                $existingOffsite = WorkLog::where('employee_id', $employee->id)
-                    ->where('date', '>=', $today)
-                    ->where('type', 'check_out')
-                    ->where('category', 'offsite_start')
-                    ->whereDoesntHave('pairedLog', function ($query) {
-                        $query->where('type', 'check_in')
-                            ->where('category', 'offsite_end');
-                    })
-                    ->first();
+                    $existingOffsite = WorkLog::where('employee_id', $employee->id)
+                        ->where('date', '>=', $today)
+                        ->where('type', 'check_out')
+                        ->where('category', 'offsite_start')
+                        ->whereNotExists(function ($query) {
+                            $query->select(\DB::raw(1))
+                                ->from('work_logs as paired')
+                                ->whereRaw('paired.paired_log_id = work_logs.id')
+                                ->where('paired.type', 'check_in')
+                                ->where('paired.category', 'offsite_end');
+                        })
+                        ->first();
 
                 if ($existingOffsite) {
                     return response()->json([
@@ -332,9 +341,12 @@ class WorkLogController extends Controller
                         ->where('date', '>=', $today)
                         ->where('type', 'check_out')
                         ->where('category', 'break_start')
-                        ->whereDoesntHave('pairedLog', function ($query) {
-                            $query->where('type', 'check_in')
-                                ->where('category', 'break_end');
+                        ->whereNotExists(function ($query) {
+                            $query->select(\DB::raw(1))
+                                ->from('work_logs as paired')
+                                ->whereRaw('paired.paired_log_id = work_logs.id')
+                                ->where('paired.type', 'check_in')
+                                ->where('paired.category', 'break_end');
                         })
                         ->first();
 
