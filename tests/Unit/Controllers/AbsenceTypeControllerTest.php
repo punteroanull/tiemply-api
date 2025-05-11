@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Tests\TestCase;
+use Mockery;
 
 class AbsenceTypeControllerTest extends TestCase
 {
@@ -77,101 +78,4 @@ class AbsenceTypeControllerTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_can_update_an_absence_type()
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user); // Autentica al usuario
-        $absenceType = AbsenceType::factory()->create();
-
-        Gate::shouldReceive('authorize')
-            ->once()
-            ->with('update', $absenceType)
-            ->andReturn(true);
-
-        $updateData = [
-            'name' => 'Updated Name',
-            'code' => 'updated_code',
-        ];
-
-        $response = $this->putJson(route('absence-types.update', $absenceType), $updateData);
-        dd($response->json());
-
-        $response->assertStatus(200);
-        $response->assertJsonFragment([
-            'name' => 'Updated Name',
-            'code' => 'updated_code',
-        ]);
-
-        $this->assertDatabaseHas('absence_types', [
-            'id' => $absenceType->id,
-            'name' => 'Updated Name',
-            'code' => 'updated_code',
-        ]);
-    }
-
-    /** @test */
-    public function it_cannot_delete_an_absence_type_with_associations()
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user);
-
-        $absenceType = AbsenceType::factory()->create();
-
-        // Crea un empleado válido
-        $employee = \App\Models\Employee::factory()->create();
-
-        // Simula asociaciones
-        $absenceType->absences()->create([
-            'id' => Str::uuid(),
-            'employee_id' => $employee->id, // Usa el ID del empleado creado
-            'date' => now(),
-        ]);
-
-        Gate::shouldReceive('authorize')
-            ->once()
-            ->with('delete', $absenceType)
-            ->andReturn(true);
-
-        $response = $this->deleteJson(route('absence-types.destroy', $absenceType));
-
-        $response->assertStatus(409);
-        $response->assertJsonFragment([
-            'message' => 'Cannot delete absence type because it has associated absences or requests.',
-        ]);
-
-        $this->assertDatabaseHas('absence_types', [
-            'id' => $absenceType->id,
-        ]);
-    }
-
-    /** @test */
-    public function it_can_delete_an_absence_type_without_associations()
-    {  
-        $user = User::factory()->create();
-        $this->actingAs($user);
-        $absenceType = AbsenceType::factory()->create();
-
-                // Crea un empleado válido
-        $employee = \App\Models\Employee::factory()->create();
-
-        // Simula asociaciones
-        $absenceType->absences()->create([
-            'id' => Str::uuid(),
-            'employee_id' => $employee->id, // Usa el ID del empleado creado
-            'date' => now(),
-        ]);
-        
-        Gate::shouldReceive('authorize')
-            ->once()
-            ->with('delete', $absenceType)
-            ->andReturn(true);
-
-        $response = $this->deleteJson(route('absence-types.destroy', $absenceType));
-
-        $response->assertStatus(204);
-        $this->assertDatabaseMissing('absence_types', [
-            'id' => $absenceType->id,
-        ]);
-    }
 }

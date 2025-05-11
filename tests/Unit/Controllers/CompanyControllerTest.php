@@ -55,6 +55,7 @@ class CompanyControllerTest extends TestCase
         // Create companies
         $company1 = Company::factory()->create();
         $company2 = Company::factory()->create();
+        $company3 = Company::factory()->create();
         
         // Associate manager with company1
         Employee::factory()->create([
@@ -66,7 +67,7 @@ class CompanyControllerTest extends TestCase
         Sanctum::actingAs($this->manager);
         
         $response = $this->getJson('/api/companies');
-        dd($response->json());
+        //dd($response->json());
         $response->assertStatus(200)
             ->assertJsonCount(1)
             ->assertJsonFragment(['id' => $company1->id]);
@@ -75,23 +76,23 @@ class CompanyControllerTest extends TestCase
     /** @test */
     public function employees_can_only_see_their_companies()
     {
-        // Create companies
+        // Crea dos compañías
         $company1 = Company::factory()->create();
         $company2 = Company::factory()->create();
         
-        // Associate employee with company1
+        // Asocia el empleado con la compañía 1
         Employee::factory()->create([
             'company_id' => $company1->id,
             'user_id' => $this->employee->id
         ]);
         
-        // Authenticate as employee
+        // Autentica como empleado
         Sanctum::actingAs($this->employee);
         
         $response = $this->getJson('/api/companies');
         
         $response->assertStatus(200)
-            ->assertJsonCount(1)
+            ->assertJsonCount(1) // Solo debe devolver 1 compañía
             ->assertJsonFragment(['id' => $company1->id]);
     }
 

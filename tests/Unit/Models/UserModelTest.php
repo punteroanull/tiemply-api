@@ -108,7 +108,7 @@ class UserModelTest extends TestCase
             'company_id' => $company2->id
         ]);
         
-        $companies = $user->getCompanies();
+        $companies = $user->getCompanies()->get();
         
         $this->assertEquals(2, $companies->count());
         $this->assertTrue($companies->contains($company1));

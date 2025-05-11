@@ -14,7 +14,10 @@ class CompanyPolicy
     public function viewAny(User $user)
     {
         // Cualquier usuario autenticado puede ver empresas
-        return true;
+        if ($user->isAdmin()) {
+            return true;
+        } 
+        return false;
     }
 
     /**
