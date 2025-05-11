@@ -2,8 +2,6 @@
 
 Tiemply is a comprehensive employee time management system built with Laravel 12. It provides a robust REST API that enables companies to manage employee attendance, vacation requests, absences, and more, all in one place.
 
-![Tiemply Logo](https://via.placeholder.com/800x200?text=Tiemply+API)
-
 ## 🌟 Features
 
 - **Employee time tracking** - Clock in/out functionality with detailed reports
