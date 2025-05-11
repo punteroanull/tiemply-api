@@ -59,7 +59,7 @@ The API is currently functional for core time-tracking operations, allowing comp
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/tiemply-api.git
+   git clone https://github.com/punteroanull/tiemply-api.git
    cd tiemply-api
    ```
 
