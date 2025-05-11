@@ -6,6 +6,13 @@
 # done
 git config --global --add safe.directory /App
 
+# Creating necessary directories
+mkdir -p bootstrap/cache
+mkdir -p storage/framework/cache
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/logs
+
 echo "Database is ready. Executing 'composer install'..."
 
 composer install
