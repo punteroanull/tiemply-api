@@ -53,13 +53,6 @@ class WorkLog extends Model
         return $this->belongsTo(WorkLog::class, 'paired_log_id');
     }
     
-    /**
-     * Get the logs that are paired with this one.
-     */
-    public function pairedLogs()
-    {
-        return $this->hasMany(WorkLog::class, 'paired_log_id');
-    }
     
     /**
      * Scope a query to only include check-ins.

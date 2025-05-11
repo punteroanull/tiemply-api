@@ -255,14 +255,19 @@ class WorkLogController extends Controller
                     ->where('date', '>=', $today)
                     ->where('type', 'check_out')
                     ->whereIn('category', ['break_start', 'offsite_start'])
-                    ->whereDoesntHave('pairedLog', function ($query) {
-                        $query->where('type', 'check_in')
-                            ->whereIn('category', ['break_end', 'offsite_end']);
-                    })->exists();
-
+                    ->whereNotExists(function ($query) {
+                        $query->select(\DB::raw(1))
+                            ->from('work_logs as paired')
+                            ->whereRaw('paired.paired_log_id = work_logs.id')
+                            ->where('paired.type', 'check_in')
+                            ->whereIn('paired.category', ['break_end', 'offsite_end']);
+                    })
+                    ->exists();
+                    
                 if ($existingBreakOrOffsite) {
                     return response()->json([
                         'message' => 'Employee has already checked out for a break or offsite, must return first to end the shift',
+                        'data' => $existingBreakOrOffsite,
                     ], 422);
                 }
                 // Check if there is not a check-out for this category already without a paired log
