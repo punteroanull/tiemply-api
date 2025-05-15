@@ -125,9 +125,12 @@ class WorkLogController extends Controller
                     ->where('date', $today)
                     ->where('type', 'check_in')
                     ->where('category', 'shift_start')
-                    ->whereDoesntHave('pairedLog', function ($query) {
-                        $query->where('type', 'check_out')
-                            ->where('category', 'shift_end');
+                    ->whereNotExists(function ($query) {
+                        $query->select(\DB::raw(1))
+                            ->from('work_logs as paired')
+                            ->whereRaw('paired.paired_log_id = work_logs.id')
+                            ->where('paired.type', 'check_out')
+                            ->where('paired.category', 'shift_end');
                     })
                     ->exists();
 
@@ -146,9 +149,12 @@ class WorkLogController extends Controller
                     ->where('date', '>=', $today)
                     ->where('type', 'check_out')
                     ->where('category', 'break_start')
-                    ->whereDoesntHave('pairedLog', function ($query) {
-                        $query->where('type', 'check_in')
-                            ->where('category', 'break_end');
+                    ->whereNotExists(function ($query) {
+                        $query->select(\DB::raw(1))
+                            ->from('work_logs as paired')
+                            ->whereRaw('paired.paired_log_id = work_logs.id')
+                            ->where('paired.type', 'check_in')
+                            ->where('paired.category', 'break_end');
                     })
                     ->first();
 
@@ -168,9 +174,12 @@ class WorkLogController extends Controller
                     ->where('date', '>=', $today)
                     ->where('type', 'check_out')
                     ->where('category', 'offsite_start')
-                    ->whereDoesntHave('pairedLog', function ($query) {
-                        $query->where('type', 'check_in')
-                            ->where('category', 'offsite_end');
+                    ->whereNotExists(function ($query) {
+                        $query->select(\DB::raw(1))
+                            ->from('work_logs as paired')
+                            ->whereRaw('paired.paired_log_id = work_logs.id')
+                            ->where('paired.type', 'check_in')
+                            ->where('paired.category', 'offsite_end');
                     })
                     ->first();
 
@@ -236,9 +245,12 @@ class WorkLogController extends Controller
             ->where('date', '>=', $today)
             ->where('type', 'check_in')
             ->where('category', 'shift_start')
-            ->whereDoesntHave('pairedLog', function ($query) {
-                $query->where('type', 'check_out')
-                    ->where('category', 'shift_end');
+            ->whereNotExists(function ($query) {
+                $query->select(\DB::raw(1))
+                    ->from('work_logs as paired')
+                    ->whereRaw('paired.paired_log_id = work_logs.id')
+                    ->where('paired.type', 'check_out')
+                    ->where('paired.category', 'shift_end');
             })
             ->first();
 
