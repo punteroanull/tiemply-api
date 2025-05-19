@@ -38,7 +38,6 @@ class EmployeePolicy
      */
     public function view(User $user, Employee $employee)
     {
-        // El usuario puede ver su propio registro de empleado
         if ($user->id === $employee->user_id) {
             return true;
         }

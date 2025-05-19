@@ -402,7 +402,8 @@ class WorkLogController extends Controller
 
     public function getEmployeeStatus(string $employeeId)
     {
-        $employee = Employee::findOrFail($employeeId);        
+        //dump($employeeId);
+        $employee = Employee::findOrFail($employeeId);
         Gate::authorize('view', $employee);
         error_log('employeeId: ' . $employeeId);
         // Get the most recent work log entry
