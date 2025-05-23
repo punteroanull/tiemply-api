@@ -36,9 +36,7 @@ class WorkLogPolicy
      * @return \Illuminate\Auth\Access\Response|bool
      */
     public function view(User $user, Worklog $worklog)
-    {
-        
-        // Verificar que el workLog tiene un empleado asociado
+    {        
         if ($worklog->employee) {
             // El usuario puede ver sus propios registros de trabajo
             if ($user->id === $worklog->employee->user_id) {
@@ -61,6 +59,28 @@ class WorkLogPolicy
         return false;
         
         //return true; //No consigo hacer funcionar la política de permisos para el modelo WorkLog
+    }
+    public function viewEmployeeWorkLogs(User $user, Employee $employee)
+    {
+        dump($employee);
+        // El usuario puede ver sus propios registros de trabajo
+        if ($user->id === $employee->user_id) {
+            return true;
+        }
+
+        // Los administradores pueden ver cualquier registro de trabajo
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Los gerentes pueden ver los registros de trabajo de los empleados de sus empresas
+        if ($user->isManager()) {
+            $userCompanyIds = $user->companiesEloquent->pluck('id')->toArray();
+            
+            return in_array($employee->company_id, $userCompanyIds);
+        }
+
+        return false;
     }
 
     /**
