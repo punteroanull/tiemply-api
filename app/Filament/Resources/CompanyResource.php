@@ -8,6 +8,7 @@ use App\Models\Company;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,7 +43,15 @@ class CompanyResource extends Resource
                     ->maxLength(255),
                 Forms\Components\TextInput::make('address')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->suffixAction(
+                        Action::make('Buscar coordenadas')
+                            ->icon('heroicon-o-map-pin')
+                            ->action(function ($state, $livewire) {
+                                // Llama a un método Livewire para buscar coordenadas
+                                $livewire->getCoordinatesFromAddress($state);
+                            })
+                ),
                 Forms\Components\TextInput::make('phone')
                     ->tel()
                     ->required()
@@ -53,6 +62,28 @@ class CompanyResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(22),
+                // NUEVOS CAMPOS PARA GEOLOCALIZACIÓN
+                Forms\Components\Toggle::make('geolocation_enabled')
+                    ->label('Geolocation Enabled'),
+                Forms\Components\Toggle::make('geolocation_required')
+                    ->label('Geolocation Required'),
+
+                Forms\Components\TextInput::make('geolocation_radius')
+                    ->numeric()
+                    ->step(1)
+                    ->minValue(0)
+                    ->label('Geolocation Radius (meters)')
+                    ->default(100),
+
+                Forms\Components\TextInput::make('office_latitude')
+                    ->numeric()
+                    ->step(0.0000001)
+                    ->label('Office Latitude'),
+
+                Forms\Components\TextInput::make('office_longitude')
+                    ->numeric()
+                    ->step(0.0000001)
+                    ->label('Office Longitude'),
             ]);
     }
 
@@ -61,7 +92,8 @@ class CompanyResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID'),
+                    ->label('ID')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('tax_id')
@@ -71,11 +103,18 @@ class CompanyResource extends Resource
                 Tables\Columns\TextColumn::make('contact_person')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make('geolocation_enabled')
+                    ->boolean()
+                    ->name('Geolocation Enabled'),
+                Tables\Columns\IconColumn::make('geolocation_required')
+                    ->boolean()
+                    ->name('Geolocation Required'),
                 Tables\Columns\TextColumn::make('address')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('phone')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('vacation_type'),
                 Tables\Columns\TextColumn::make('max_vacation_days')
                     ->numeric()

@@ -42,7 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/employees/{employee}/work-logs', [EmployeeController::class, 'workLogs'])->name('employees.work-logs');
     Route::get('/employees/{employee}/absences', [EmployeeController::class, 'absences'])->name('employees.absences');
     Route::get('/employees/{employee}/absence-requests', [EmployeeController::class, 'absenceRequests'])->name('employees.absence-requests');
-
+    Route::get('employees/{employee}/company-settings', [EmployeeController::class, 'getCompanySettings']);
+    
     // Roles routes
     Route::apiResource('roles', RoleController::class);
 

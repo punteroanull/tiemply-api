@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class CompanyEmployeesStatsWidget extends BaseWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 1;
 
     protected function getStats(): array
     {

@@ -24,6 +24,12 @@ class Company extends Model
         'phone',
         'vacation_type',
         'max_vacation_days',
+        'geolocation_enabled',
+        'geolocation_required', 
+        'geolocation_radius',
+        'office_latitude',
+        'office_longitude',
+        'office_address',
     ];
 
     /**
@@ -33,7 +39,66 @@ class Company extends Model
      */
     protected $casts = [
         'max_vacation_days' => 'integer',
+        'geolocation_enabled' => 'boolean',
+        'geolocation_required' => 'boolean',
+        'geolocation_radius' => 'decimal:2',
+        'office_latitude' => 'decimal:12', // 12 digits total, 9 after decimal
+        'office_longitude' => 'decimal:12',        
     ];
+
+    /**
+     * Check if geolocation is enabled for this company.
+     */
+    public function isGeolocationEnabled()
+    {
+        return $this->geolocation_enabled;
+    }
+
+    /**
+     * Check if geolocation is required for this company.
+     */
+    public function isGeolocationRequired()
+    {
+        return $this->geolocation_required;
+    }
+
+    /**
+     * Calculate distance between two coordinates in meters.
+     */
+    public function calculateDistance($lat1, $lng1, $lat2, $lng2)
+    {
+        $earthRadius = 6371000; // metros
+        
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        
+        $a = sin($dLat/2) * sin($dLat/2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLng/2) * sin($dLng/2);
+            
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        
+        return $earthRadius * $c;
+    }
+
+    /**
+     * Check if coordinates are within office radius.
+     */
+    public function isWithinOfficeRadius($latitude, $longitude)
+    {
+        if (!$this->office_latitude || !$this->office_longitude || !$this->geolocation_radius) {
+            return true; // Sin restricciones de ubicación
+        }
+        
+        $distance = $this->calculateDistance(
+            $this->office_latitude,
+            $this->office_longitude,
+            $latitude,
+            $longitude
+        );
+        
+        return $distance <= $this->geolocation_radius;
+    }
 
     /**
      * Get the employees for the company.

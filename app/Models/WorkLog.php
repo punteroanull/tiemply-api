@@ -129,4 +129,39 @@ class WorkLog extends Model
         
         return sprintf('%02d:%02d', $hours, $remainingMinutes);
     }
+
+    /**
+     * Get parsed location data.
+     */
+    public function getLocationDataAttribute()
+    {
+        if (!$this->location) {
+            return null;
+        }
+        
+        return json_decode($this->location, true);
+    }
+
+    /**
+     * Check if this log has location data.
+     */
+    public function hasLocation()
+    {
+        return !empty($this->location);
+    }
+
+    /**
+     * Get formatted coordinates.
+     */
+    public function getFormattedCoordinatesAttribute()
+    {
+        $locationData = $this->getLocationDataAttribute();
+        
+        if (!$locationData || !isset($locationData['latitude'], $locationData['longitude'])) {
+            return null;
+        }
+        
+        return number_format($locationData['latitude'], 6) . ', ' . 
+            number_format($locationData['longitude'], 6);
+    }
 }

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class TodayActivityWidget extends BaseWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 2;
 
     protected function getStats(): array
     {

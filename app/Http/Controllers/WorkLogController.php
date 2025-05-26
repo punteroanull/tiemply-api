@@ -106,9 +106,17 @@ class WorkLogController extends Controller
             'employee_id' => 'required|uuid|exists:employees,id',
             'category' => 'nullable|in:shift_start,break_end,offsite_end',
             'notes' => 'nullable|string|max:500',
+            'location' => 'nullable|json', // Optional location field
         ]);
 
         $employee = Employee::findOrFail($validated['employee_id']);
+        $company = $employee->company;
+
+        // Validar geolocalización si está habilitada
+        if ($company->isGeolocationEnabled()) {
+            $this->validateGeolocation($request, $company);
+        }
+        
 
         // Verify user can check in for this employee
         if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
@@ -202,6 +210,7 @@ class WorkLogController extends Controller
             'type' => 'check_in',
             'category' => $validated['category'] ?? 'shift_start',
             'ip_address' => $request->ip(),
+            'location' => $request->input('location') ?? null, // Optional location field
             'notes' => $validated['notes'] ?? null,
             'paired_log_id' => $pairedCheckId,
         ]);
@@ -228,11 +237,17 @@ class WorkLogController extends Controller
             'employee_id' => 'required|uuid|exists:employees,id',
             'category' => 'nullable|in:shift_end,break_start,offsite_start',
             'notes' => 'nullable|string|max:500',
+            'location' => 'nullable|json',
         ]);
         $category = $validated['category'] ?? 'shift_end'; // Default category for check-out
         
         $employee = Employee::findOrFail($validated['employee_id']);
+        $company = $employee->company;
 
+        // Validar geolocalización si está habilitada
+        if ($company->isGeolocationEnabled()) {
+            $this->validateGeolocation($request, $company);
+        }
         // Verify user can check in for this employee
         if (auth()->id() !== $employee->user_id && Gate::denies('createFor', [WorkLog::class, $employee])) {
             return response()->json(['message' => 'Unauthorized to check in for this employee'], 403);
@@ -1141,5 +1156,35 @@ class WorkLogController extends Controller
                     : 0
             ]
         ]);
+    }
+    private function validateGeolocation(Request $request, Company $company)
+    {
+        if ($company->isGeolocationRequired() && !$request->location) {
+            throw new \Illuminate\Validation\ValidationException(
+                validator([], []),
+                ['location' => ['Location is required for this company.']]
+            );
+        }
+        
+        if ($request->location) {
+            $locationData = json_decode($request->location, true);
+            
+            if (!$locationData || !isset($locationData['latitude'], $locationData['longitude'])) {
+                throw new \Illuminate\Validation\ValidationException(
+                    validator([], []),
+                    ['location' => ['Invalid location data format.']]
+                );
+            }
+            
+            // Validar si está dentro del radio de la oficina (opcional)
+            if ($company->office_latitude && $company->office_longitude && $company->geolocation_radius) {
+                if (!$company->isWithinOfficeRadius($locationData['latitude'], $locationData['longitude'])) {
+                    throw new \Illuminate\Validation\ValidationException(
+                        validator([], []),
+                        ['location' => ['You must be within the office area to check in/out.']]
+                    );
+                }
+            }
+        }
     }
 }

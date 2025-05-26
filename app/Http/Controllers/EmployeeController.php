@@ -218,4 +218,29 @@ class EmployeeController extends Controller
 
         return response()->json($absenceRequests);
     }
+
+    /**
+     * Get the company settings for an employee.
+     *
+     * @param  int  $employeeId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getCompanySettings($employeeId)
+    {
+        $employee = Employee::with('company')->findOrFail($employeeId);
+        
+        // Verificar que el usuario actual puede acceder a este empleado
+        if (auth()->user()->id !== $employee->user_id) {
+            abort(403, 'Unauthorized');
+        }
+        
+        return response()->json([
+            'geolocation_enabled' => $employee->company->geolocation_enabled,
+            'geolocation_required' => $employee->company->geolocation_required,
+            'geolocation_radius' => $employee->company->geolocation_radius,
+            'office_latitude' => $employee->company->office_latitude,
+            'office_longitude' => $employee->company->office_longitude,
+            'office_address' => $employee->company->office_address,
+        ]);
+    }
 }

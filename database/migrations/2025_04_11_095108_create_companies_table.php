@@ -21,6 +21,11 @@ return new class extends Migration
             $table->string('phone');
             $table->enum('vacation_type', ['business_days', 'calendar_days'])->default('business_days');
             $table->integer('max_vacation_days')->default(22);
+            $table->boolean('geolocation_enabled')->default(false);
+            $table->boolean('geolocation_required')->default(false);
+            $table->decimal('geolocation_radius', 8, 2)->nullable(); // en metros
+            $table->decimal('office_latitude', 12, 9)->nullable();
+            $table->decimal('office_longitude', 12, 9)->nullable();
             $table->timestamps();
         });
     }
