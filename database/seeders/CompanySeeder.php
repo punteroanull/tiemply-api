@@ -32,7 +32,6 @@ class CompanySeeder extends Seeder
                 'geolocation_radius' => 100.0, // 100 metros de radio
                 'office_latitude' => 40.4168, // Madrid centro (ejemplo)
                 'office_longitude' => -3.7038,
-                'office_address' => 'Oficina Principal - Calle Mayor 123, Madrid',
             ]
         );
 
@@ -56,7 +55,6 @@ class CompanySeeder extends Seeder
                 'geolocation_radius' => null, // Sin restricción de radio
                 'office_latitude' => 41.3851, // Barcelona centro (ejemplo)
                 'office_longitude' => 2.1734,
-                'office_address' => 'Oficina Barcelona - Avenida Diagonal 456',
             ]
         );
 
@@ -65,7 +63,7 @@ class CompanySeeder extends Seeder
                 // Empresa con geolocalización opcional
         $thirdCompany = Company::updateOrCreate([
             'name' => 'FlexiWork Remote',
-            'tax_id' => 'B87654321',
+            'tax_id' => 'B87623421',
             'contact_email' => 'hr@flexiwork.com',
             'contact_person' => 'Sarah Director',
             'address' => 'Avenida Diagonal 456, 08008 Barcelona, España',
@@ -79,7 +77,6 @@ class CompanySeeder extends Seeder
             'geolocation_radius' => null, // Sin restricción de radio
             'office_latitude' => 41.3851, // Barcelona centro (ejemplo)
             'office_longitude' => 2.1734,
-            'office_address' => 'Oficina Barcelona - Avenida Diagonal 456',
         ]);
 
         $this->command->info('FlexiWork Remote company created with ID: ' . $thirdCompany->id);
